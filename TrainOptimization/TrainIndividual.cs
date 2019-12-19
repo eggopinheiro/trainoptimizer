@@ -2404,7 +2404,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 #if DEBUG
                         if (DebugLog.EnableDebug)
                         {
-                            DebugLog.Logar("Atraso do trem " + pGene.TrainId + " Em " + pGene.SegmentInstance.Location + "." + pGene.SegmentInstance.SegmentValue + " com tempo anteior de " + pGene.Time + " foi para " + lvRes + " por lvLastDepTime (" + lvGene + ") na linha " + (i + 1), pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("Atraso do trem " + pGene.TrainId + " Em " + pGene.SegmentInstance.Location + "." + pGene.SegmentInstance.SegmentValue + " com tempo anteior de " + pGene.Time + " foi para " + lvRes[i] + " por lvLastDepTime (" + lvGene + ") na linha " + (i + 1), pIndet: TrainIndividual.IDLog);
                         }
 #endif
                        //DumpStopDepLocation(pStopLocation);
@@ -2421,7 +2421,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 #if DEBUG
                         if (DebugLog.EnableDebug)
                         {
-                            DebugLog.Logar("Atraso do trem " + pGene.TrainId + " Em " + pGene.SegmentInstance.Location + "." + pGene.SegmentInstance.SegmentValue + " com tempo anteior de " + pGene.Time + " foi para " + lvRes + " por lvLastDepTime interdicao na linha " + (i + 1), pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("Atraso do trem " + pGene.TrainId + " Em " + pGene.SegmentInstance.Location + "." + pGene.SegmentInstance.SegmentValue + " com tempo anteior de " + pGene.Time + " foi para " + lvRes[i] + " por lvLastDepTime interdicao na linha " + (i + 1), pIndet: TrainIndividual.IDLog);
                         }
 #endif
                     }
@@ -5194,6 +5194,8 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 lvNextSwitch = Segment.GetNextSwitchSegment(lvGene.Coordinate, lvGene.Direction);
             }
 
+            lvCurrentTime = lvGene.HeadWayTime;
+
             if ((lvGene.Time > lvGene.HeadWayTime) && (lvGene.Time > lvCurrentTime))
             {
                 lvCurrentTime = lvGene.Time;
@@ -5217,7 +5219,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 }
 #endif
             }
-            else if ((lvGene.DepartureTime > lvGene.HeadWayTime) && (lvGene.Time > lvCurrentTime))
+            else if ((lvGene.DepartureTime > lvGene.HeadWayTime) && (lvGene.HeadWayTime > lvCurrentTime))
             {
                 lvCurrentTime = lvGene.HeadWayTime;
 
@@ -5242,71 +5244,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             }
 
             lvArrLastDepTime = GetCurrentFirstOutputTime(lvGene, lvNextStopLocation, lvGene.Direction);
-
-            if(lvArrLastDepTime != null)
-            {
-                lvLastDepTime = DateTime.MaxValue;
-                for (int i = 0; i < lvArrLastDepTime.Length; i++)
-                {
-                    if((lvArrLastDepTime[i] < lvLastDepTime) && lvNextAvailable[i])
-                    {
-                        lvDestTrack = i + 1;
-                        lvLastDepTime = lvArrLastDepTime[i];
-                    }
-
-#if DEBUG
-                    if (DebugLog.EnableDebug)
-                    {
-                        StringBuilder lvStrInfo = new StringBuilder();
-
-                        lvStrInfo.Clear();
-                        lvStrInfo.Append("lvArrLastDepTime[");
-                        lvStrInfo.Append(i);
-                        lvStrInfo.Append("] = ");
-                        lvStrInfo.Append(lvArrLastDepTime[i]);
-
-                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                    }
-#endif
-
-                }
-            }
-
-#if DEBUG
-            if (DebugLog.EnableDebug)
-            {
-                StringBuilder lvStrInfo = new StringBuilder();
-
-                lvStrInfo.Clear();
-                lvStrInfo.Append("; lvCurrentTime = ");
-                lvStrInfo.Append(lvCurrentTime);
-
-                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-            }
-#endif
-
-            if ((lvLastDepTime > lvGene.HeadWayTime) && (lvLastDepTime > lvCurrentTime) && (lvLastDepTime < DateTime.MaxValue))
-            {
-                lvCurrentTime = lvLastDepTime;
-#if DEBUG
-                if (DebugLog.EnableDebug)
-                {
-                    StringBuilder lvStrInfo = new StringBuilder();
-
-                    lvStrInfo.Clear();
-                    lvStrInfo.Append("lvLastDepTime em lvCurrentTime do Gene (");
-                    lvStrInfo.Append(pGene.TrainId);
-                    lvStrInfo.Append(" - ");
-                    lvStrInfo.Append(pGene.TrainName);
-                    lvStrInfo.Append(") = ");
-                    lvStrInfo.Append(lvLastDepTime);
-                    lvStrInfo.Append(" por ser maior que o headway atual ");
-                    lvStrInfo.Append(pGene.HeadWayTime);
-
-                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                }
-#endif
-            }
 
             lvInterdition = null;
             if ((lvGene.Track <= lvNextCapacity) && (((lvGene.Direction > 0) && ((lvNextSwitch == null) || (lvNextStopLocation.Start_coordinate < lvNextSwitch.Start_coordinate))) || ((lvGene.Direction < 0) && ((lvNextSwitch == null) || (lvNextStopLocation.End_coordinate > lvNextSwitch.End_coordinate)))))
@@ -5386,6 +5323,65 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
                 if (lvNextCapacity == 1)
                 {
+                    if (lvArrLastDepTime != null)
+                    {
+                        lvDestTrack = lvGene.Track - 1;
+                        lvLastDepTime = lvArrLastDepTime[lvDestTrack];
+
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("lvArrLastDepTime[");
+                            lvStrInfo.Append(lvDestTrack);
+                            lvStrInfo.Append("] = ");
+                            lvStrInfo.Append(lvArrLastDepTime[lvDestTrack]);
+
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
+                    }
+
+#if DEBUG
+                    if (DebugLog.EnableDebug)
+                    {
+                        StringBuilder lvStrInfo = new StringBuilder();
+
+                        lvStrInfo.Clear();
+                        lvStrInfo.Append("lvCurrentTime = ");
+                        lvStrInfo.Append(lvCurrentTime);
+                        lvStrInfo.Append("; lvLastDepTime = ");
+                        lvStrInfo.Append(lvLastDepTime);
+
+                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                    }
+#endif
+
+                    if ((lvLastDepTime > lvGene.HeadWayTime) && (lvLastDepTime > lvCurrentTime) && (lvLastDepTime < DateTime.MaxValue))
+                    {
+                        lvCurrentTime = lvLastDepTime;
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("lvLastDepTime em lvCurrentTime do Gene (");
+                            lvStrInfo.Append(pGene.TrainId);
+                            lvStrInfo.Append(" - ");
+                            lvStrInfo.Append(pGene.TrainName);
+                            lvStrInfo.Append(") = ");
+                            lvStrInfo.Append(lvLastDepTime);
+                            lvStrInfo.Append(" por ser maior que o headway atual ");
+                            lvStrInfo.Append(pGene.HeadWayTime);
+
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
+                    }
+
                     if (Interdicao.GetList().Count > 0)
                     {
                         lvInterdition = GetInterdiction(lvNextStopLocation.Start_coordinate, lvNextStopLocation.End_coordinate, lvGene.Time, lvGene.Track);
@@ -5460,7 +5456,74 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                     }
                 }
 
-                if(lvNextSwitch.AllowSameLineMov && (lvDestTrack == 0) && (lvGene.Track <= lvNextAvailable.Length) && lvNextAvailable[lvGene.Track - 1])
+                if (lvArrLastDepTime != null)
+                {
+                    lvLastDepTime = DateTime.MaxValue;
+                    for (int i = 0; i < lvArrLastDepTime.Length; i++)
+                    {
+                        if ((lvArrLastDepTime[i] < lvLastDepTime) && lvNextAvailable[i])
+                        {
+                            lvDestTrack = i + 1;
+                            lvLastDepTime = lvArrLastDepTime[i];
+                        }
+
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("lvArrLastDepTime[");
+                            lvStrInfo.Append(i);
+                            lvStrInfo.Append("] = ");
+                            lvStrInfo.Append(lvArrLastDepTime[i]);
+
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
+
+                    }
+                }
+
+#if DEBUG
+                if (DebugLog.EnableDebug)
+                {
+                    StringBuilder lvStrInfo = new StringBuilder();
+
+                    lvStrInfo.Clear();
+                    lvStrInfo.Append("lvCurrentTime = ");
+                    lvStrInfo.Append(lvCurrentTime);
+                    lvStrInfo.Append("; lvLastDepTime = ");
+                    lvStrInfo.Append(lvLastDepTime);
+
+                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                }
+#endif
+
+                if ((lvLastDepTime > lvGene.HeadWayTime) && (lvLastDepTime > lvCurrentTime) && (lvLastDepTime < DateTime.MaxValue))
+                {
+                    lvCurrentTime = lvLastDepTime;
+#if DEBUG
+                    if (DebugLog.EnableDebug)
+                    {
+                        StringBuilder lvStrInfo = new StringBuilder();
+
+                        lvStrInfo.Clear();
+                        lvStrInfo.Append("lvLastDepTime em lvCurrentTime do Gene (");
+                        lvStrInfo.Append(pGene.TrainId);
+                        lvStrInfo.Append(" - ");
+                        lvStrInfo.Append(pGene.TrainName);
+                        lvStrInfo.Append(") = ");
+                        lvStrInfo.Append(lvLastDepTime);
+                        lvStrInfo.Append(" por ser maior que o headway atual ");
+                        lvStrInfo.Append(pGene.HeadWayTime);
+
+                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                    }
+#endif
+                }
+
+                if (lvNextSwitch.AllowSameLineMov && (lvDestTrack == 0) && (lvGene.Track <= lvNextAvailable.Length) && lvNextAvailable[lvGene.Track - 1])
                 {
                     lvDestTrack = lvGene.Track;
                 }
@@ -5485,54 +5548,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 }
             }
 
-            if (Interdicao.GetList().Count > 0)
-            {
-                if (lvGene.Direction > 0)
-                {
-                    if (lvStopLocation != null)
-                    {
-                        lvInterdition = GetInterdiction(lvStopLocation.End_coordinate, lvNextStopLocation.Start_coordinate, lvGene.Time, 1);
-                    }
-                    else
-                    {
-                        lvInterdition = GetInterdiction(lvGene.Coordinate, lvNextStopLocation.Start_coordinate, lvGene.Time, 1);
-                    }
-                }
-                else
-                {
-                    if (lvStopLocation != null)
-                    {
-                        lvInterdition = GetInterdiction(lvNextStopLocation.End_coordinate, lvStopLocation.Start_coordinate, lvGene.Time, 1);
-                    }
-                    else
-                    {
-                        lvInterdition = GetInterdiction(lvNextStopLocation.End_coordinate, lvGene.Coordinate, lvGene.Time, 1);
-                    }
-                }
-
-                if ((lvInterdition != null) && (lvInterdition.End_time > lvCurrentTime))
-                {
-                    lvCurrentTime = lvInterdition.End_time;
-
-#if DEBUG
-                    if (DebugLog.EnableDebug)
-                    {
-                        StringBuilder lvStrInfo = new StringBuilder();
-
-                        lvStrInfo.Clear();
-                        lvStrInfo.Append("lvCurrentTime atualizado por lvEndInterditionTime para Gene (");
-                        lvStrInfo.Append(lvGene.TrainId);
-                        lvStrInfo.Append(" - ");
-                        lvStrInfo.Append(lvGene.TrainName);
-                        lvStrInfo.Append(") = ");
-                        lvStrInfo.Append(lvCurrentTime);
-
-                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                    }
-#endif
-                }
-            }
-
             lvPATTime = GetPAT(lvStopLocation, lvGene.TrainId);
 
             if (lvPATTime > 0)
@@ -5548,6 +5563,54 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
                         lvStrInfo.Clear();
                         lvStrInfo.Append("lvCurrentTime atualizado por lvPATTime para Gene (");
+                        lvStrInfo.Append(lvGene.TrainId);
+                        lvStrInfo.Append(" - ");
+                        lvStrInfo.Append(lvGene.TrainName);
+                        lvStrInfo.Append(") = ");
+                        lvStrInfo.Append(lvCurrentTime);
+
+                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                    }
+#endif
+                }
+            }
+
+            if (Interdicao.GetList().Count > 0)
+            {
+                if (lvGene.Direction > 0)
+                {
+                    if (lvStopLocation != null)
+                    {
+                        lvInterdition = GetInterdiction(lvStopLocation.End_coordinate, lvNextStopLocation.Start_coordinate, lvCurrentTime, 1);
+                    }
+                    else
+                    {
+                        lvInterdition = GetInterdiction(lvGene.Coordinate, lvNextStopLocation.Start_coordinate, lvCurrentTime, 1);
+                    }
+                }
+                else
+                {
+                    if (lvStopLocation != null)
+                    {
+                        lvInterdition = GetInterdiction(lvNextStopLocation.End_coordinate, lvStopLocation.Start_coordinate, lvCurrentTime, 1);
+                    }
+                    else
+                    {
+                        lvInterdition = GetInterdiction(lvNextStopLocation.End_coordinate, lvGene.Coordinate, lvCurrentTime, 1);
+                    }
+                }
+
+                if ((lvInterdition != null) && (lvInterdition.End_time > lvCurrentTime))
+                {
+                    lvCurrentTime = lvInterdition.End_time;
+
+#if DEBUG
+                    if (DebugLog.EnableDebug)
+                    {
+                        StringBuilder lvStrInfo = new StringBuilder();
+
+                        lvStrInfo.Clear();
+                        lvStrInfo.Append("lvCurrentTime atualizado por lvEndInterditionTime para Gene (");
                         lvStrInfo.Append(lvGene.TrainId);
                         lvStrInfo.Append(" - ");
                         lvStrInfo.Append(lvGene.TrainName);
@@ -5896,6 +5959,10 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                     }
                 }
             }
+
+#if DEBUG
+            DumpStopLocation(lvNextStopLocation);
+#endif
 
             if (lvNextCapacity > 0)
             {
