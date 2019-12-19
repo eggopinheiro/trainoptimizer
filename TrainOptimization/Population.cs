@@ -360,18 +360,6 @@ public class Population
         mStopWatch.Start();
 #endif
 
-
-        SortedList<int, int> lvTeste = new SortedList<int, int>();
-
-
-
-#if DEBUG
-        mStopWatch.Stop();
-
-        DebugLog.Logar("mStopWatch for GenerateIndividual = " + mStopWatch.Elapsed, false, pIndet: TrainIndividual.IDLog);
-#endif
-
-
         List<int> lvSavedIndividualsIds = ListIndividualsToLoad();
 
         if (MAX_PARALLEL_THREADS > 1)
@@ -505,6 +493,9 @@ public class Population
         {
             DebugLog.Logar(" ", pIndet: TrainIndividual.IDLog);
         }
+
+        TrainIndividual lvGeneIndividual = (TrainIndividual)GetBestIndividual();
+        lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
 #endif
 
         if (mIndividuals.Count > 0)
@@ -3516,8 +3507,12 @@ public class Population
         pSon = null;
         pDaughter = null;
 
+        bool lvIsLogEnables = DebugLog.EnableDebug;
+
 #if DEBUG
+        DebugLog.EnableDebug = lvIsLogEnables;
         DebugLog.Logar(" ------------------------------------------ DoCrossOver  ------------------------------------------", pIndet: TrainIndividual.IDLog);
+        DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
         lvCount = pMother.Count;
@@ -3571,9 +3566,8 @@ public class Population
 
             lvInitialSon = pFather.GetGenes(mTrainList.Count, lvCrossOverPos[0]);
             pSon = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
-            ((TrainIndividual)pSon).DumpStopArrivalLocation(null, -1, "pSon");
             pSon.AddGenes(lvInitialSon);
-            ((TrainIndividual)pSon).DumpStopArrivalLocation(null, -1, "pSon");
+
             foreach (Gene lvGen in lvInitialSon)
             {
                 if (lvGen.State == Gene.STATE.OUT)
@@ -3585,9 +3579,7 @@ public class Population
 
             lvInitialDaughter = pMother.GetGenes(mTrainList.Count, lvCrossOverPos[0]);
             pDaughter = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
-            ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, -1, "pDaughter");
             pDaughter.AddGenes(lvInitialDaughter);
-            ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, -1, "pDaughter");
 
             foreach (Gene lvGen in lvInitialDaughter)
             {
@@ -3599,11 +3591,11 @@ public class Population
             //DebugLog.Logar("DoCrossOver.pDaughter.VerifyConflict() = " + ((TrainIndividual)pDaughter).VerifyConflict(), pIndet: TrainIndividual.IDLog);
 
 #if DEBUG
+            DebugLog.EnableDebug = lvIsLogEnables;
             DebugLog.Logar("DoCrossOver => Inicio de adicao de Genes por processGene (pSon: " + pSon.GetUniqueId() + ", pDaughter: " + pDaughter.GetUniqueId() + ") ...", pIndet: TrainIndividual.IDLog);
-            ((TrainIndividual)pSon).DumpCurrentPosDic("DoCrossOver.pSon apos AddGenes");
             ((TrainIndividual)pSon).DumpStopArrivalLocation(null, 0, "pSon");
-            ((TrainIndividual)pDaughter).DumpCurrentPosDic("DoCrossOver.pDaughter apos AddGenes");
             ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, 0, "pDaughter");
+            DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
             for (int ind = 1; ind <= lvCrossOverPointsNum; ind++)
@@ -3935,7 +3927,9 @@ public class Population
             }
 
 #if DEBUG
+            DebugLog.EnableDebug = lvIsLogEnables;
             DebugLog.Logar(" -----------------------------------------------------------------------------------------------------", pIndet: TrainIndividual.IDLog);
+            DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
             //DebugLog.Logar("DoCrossOver.pSon.VerifyConflict() = " + ((TrainIndividual)pSon).VerifyConflict(), pIndet: TrainIndividual.IDLog);
@@ -3945,6 +3939,8 @@ public class Population
         {
             DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
         }
+
+        DebugLog.EnableDebug = lvIsLogEnables;
     }
 
     private IIndividual<Gene> HasteGene(IIndividual<Gene> pIndividual, double pTrainId)
@@ -3997,11 +3993,15 @@ public class Population
         int lvPrevGene = -1;
         int lvEndIndex = -1;
 
+        bool lvIsLogEnables = DebugLog.EnableDebug;
+
 #if DEBUG
+        DebugLog.EnableDebug = lvIsLogEnables;
         if (DebugLog.EnableDebug)
         {
             DebugLog.Logar(" ------------------------ Mutate(" + pIndividual.GetUniqueId() + ", " + pSteps + ", " + pUpdate + ") -------------------------- ");
         }
+        DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
         try
@@ -4264,10 +4264,12 @@ public class Population
             }
 
 #if DEBUG
+            DebugLog.EnableDebug = lvIsLogEnables;
             if (DebugLog.EnableDebug)
             {
                 DebugLog.Logar(" --------------------------------------------------------------------------------------------------------------- ");
             }
+            DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
         }
@@ -4275,6 +4277,8 @@ public class Population
         {
             DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
         }
+
+        DebugLog.EnableDebug = lvIsLogEnables;
 
         return lvMutatedIndividual;
     }

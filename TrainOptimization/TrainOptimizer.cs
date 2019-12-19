@@ -887,8 +887,8 @@ namespace TrainOptimization
                                 lvRes = lvPopulation.NextGeneration();
                                 //lvPopulation.dump(lvPopulation.GetBestIndividual());
 
-                                lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                                lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+                                //lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                                //lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
 
                                 if (!lvRes)
                                 {
@@ -915,8 +915,10 @@ namespace TrainOptimization
                                     break;
                                 }
 
-                                //((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-                                //lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                                /*
+                                ((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+                                lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                                */
                             }
                         }
 

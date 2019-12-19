@@ -16,3 +16,4 @@ C:\Users\ehfp\Projects\TrainOptimization\TrainOptimization\bin\Debug\MySql.Data.
 C:\Users\ehfp\Projects\TrainOptimization\TrainOptimization\obj\Debug\TrainOptimization.TrainOptimizer.resources
 C:\Users\eggo\Projetos\TrainOptimization\TrainOptimization\obj\Debug\TrainOptimization.TrainOptimizer.resources
 C:\Users\ehfp\Projects\TrainOptimization\TrainOptimization\obj\Debug\TrainOptimization.csprojResolveAssemblyReference.cache
+C:\Users\eggo\Projetos\TrainOptimization\TrainOptimization\obj\Debug\TrainOptimization.csprojResolveAssemblyReference.cache
