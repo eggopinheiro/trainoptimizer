@@ -2016,6 +2016,13 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 {
                     ProcessGene(lvGen, lvCurrentTime);
                 }
+                else if((lvGen.StopLocation.NoStopSet != null) && (lvGen.StopLocation.NoStopSet.Count > 0))
+                {
+                    if(lvGen.StopLocation.NoStopSet.Contains(lvGen.TrainName + lvGen.Direction))
+                    {
+                        ProcessGene(lvGen, lvCurrentTime);
+                    }
+                }
             }
 
             lvMovTurn = new List<Gene>(mDicTrain.Values);
@@ -2251,10 +2258,10 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                             DumpDicTrain(mDicTrain);
                             DumpDeadLockPoint();
                             DumpStopLocation(null, false);
+                            GenerateFlotFiles(DebugLog.LogPath);
 #endif
                             //Dump(mList, 0L);
                             DebugLog.EnableDebug = lvLogEnabled;
-                            GenerateFlotFiles(DebugLog.LogPath);
                             lvRes = false;
                             DebugLog.Save("Individuo " + mUniqueId + " criado com deadlock -> Inválido !");
 
@@ -4050,6 +4057,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         return lvRes;
     }
 
+    /*
     public bool IsCausingDeadLock(Gene pGene)
     {
         bool lvRes = true;
@@ -4146,16 +4154,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                                 }
                                 else
                                 {
-                                    /*
-                                    DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
-                                    DebugLog.Logar(" ----------> Individuo com um possível deadlock -> Inválido !", false, pIndet: TrainIndividual.IDLog);
-                                    DebugLog.Logar("pGene = " + pGene, false, pIndet: TrainIndividual.IDLog);
-                                    DumpStopLocation(pGene.StopLocation, false);
-                                    DumpStopLocation(lvNextStopLocation, false);
-                                    DebugLog.Logar(" --- ", false, pIndet: TrainIndividual.IDLog);
-                                    DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
-                                    */
-
                                     foreach (long lvTrainId in lvListGeneStopLocation)
                                     {
                                         if (mDicTrain.ContainsKey(lvTrainId))
@@ -4609,6 +4607,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
         return lvRes;
     }
+    */
 
     public bool ProcessGene(Gene pGene, DateTime pInitialTime = default(DateTime), bool pUpdate = true)
     {
@@ -4986,7 +4985,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         lvNextCapacity = 0;
                         for (int i = 0; i < lvNextAvailable.Length; i++)
                         {
-                            if (((lvGene.Track - 1) == i) && lvNextAvailable[i])
+                            if ((lvGene.Track - 1) == i)
                             {
                                 lvNextAvailable[i] = true;
                                 lvNextCapacity++;
@@ -5074,6 +5073,27 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 #endif
                                 }
                             }
+                            else
+                            {
+                                lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+                                lvNextCapacity = 0;
+                                for (int i = 0; i < lvNextAvailable.Length; i++)
+                                {
+                                    if (lvNextAvailable[i])
+                                    {
+                                        lvNextCapacity++;
+                                    }
+                                }
+
+                                lvIsBetweenSwitch = true;
+#if DEBUG
+                                if (DebugLog.EnableDebug)
+                                {
+                                    DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
+                                    DumpBoolArray(lvNextAvailable);
+                                }
+#endif
+                            }
                         }
                     }
                 }
@@ -5085,7 +5105,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         lvNextCapacity = 0;
                         for (int i = 0; i < lvNextAvailable.Length; i++)
                         {
-                            if (((lvGene.Track - 1) == i) && lvNextAvailable[i])
+                            if ((lvGene.Track - 1) == i)
                             {
                                 lvNextAvailable[i] = true;
                                 lvNextCapacity++;
@@ -5180,6 +5200,28 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                                     }
 #endif
                                 }
+                            }
+                            else
+                            {
+                                lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+
+                                lvNextCapacity = 0;
+                                for (int i = 0; i < lvNextAvailable.Length; i++)
+                                {
+                                    if (lvNextAvailable[i])
+                                    {
+                                        lvNextCapacity++;
+                                    }
+                                }
+
+                                lvIsBetweenSwitch = true;
+#if DEBUG
+                                if (DebugLog.EnableDebug)
+                                {
+                                    DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
+                                    DumpBoolArray(lvNextAvailable);
+                                }
+#endif
                             }
                         }
                     }
@@ -5641,7 +5683,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 #endif
                 }
 
-                if (lvNextSwitch.AllowSameLineMov && (lvDestTrack == 0) && (lvGene.Track <= lvNextAvailable.Length) && lvNextAvailable[lvGene.Track - 1])
+                if ((lvDestTrack == 0) && (lvNextSwitch != null) && lvNextSwitch.AllowSameLineMov && (lvGene.Track <= lvNextAvailable.Length) && lvNextAvailable[lvGene.Track - 1])
                 {
                     lvDestTrack = lvGene.Track;
                 }
@@ -6687,6 +6729,14 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                             DumpStopLocation(lvNextStopLocation);
                         }
 #endif
+
+                        if((lvNextStopLocation.NoStopSet != null) && (lvNextStopLocation.NoStopSet.Count > 0))
+                        {
+                            if(lvNextStopLocation.NoStopSet.Contains(lvNewGene.TrainName + lvNewGene.Direction))
+                            {
+                                ProcessGene(lvNewGene, pInitialTime);
+                            }
+                        }
                     }
                     else
                     {

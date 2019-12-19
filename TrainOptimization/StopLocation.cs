@@ -28,11 +28,16 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     protected int mDwellTimeOnEndStopLocation = 0; //seconds
     protected Dictionary<int, ISet<int>> mLeftDependency = new Dictionary<int, ISet<int>>();
     protected Dictionary<int, ISet<int>> mRightDependency = new Dictionary<int, ISet<int>>();
+    protected ISet<string> mNoStopSet;
     private const int CSIDES = 2;
 
     public StopLocation()
 	{
 		Clear();
+
+        mLeftDependency = new Dictionary<int, ISet<int>>();
+        mRightDependency = new Dictionary<int, ISet<int>>();
+        mNoStopSet = new HashSet<string>();
     }
 
 	public StopLocation(int location) : this()
@@ -807,6 +812,20 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                                 }
                             }
 
+                            if (lvXmlReader["no_stop"] != null)
+                            {
+                                lvStrDependency = lvXmlReader["no_stop"];
+                                lvVarDependency = lvStrDependency.Split(';');
+
+                                foreach (string lvElem in lvVarDependency)
+                                {
+                                    if (lvElem.Length > 0)
+                                    {
+                                        lvStopLocation.NoStopSet.Add(lvElem);
+                                    }
+                                }
+                            }
+
                             mListStopLoc.Add(lvStopLocation);
 
                             break;
@@ -1402,6 +1421,14 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         set
         {
             mDwellTimeOnEndStopLocation = value;
+        }
+    }
+
+    public ISet<string> NoStopSet
+    {
+        get
+        {
+            return mNoStopSet;
         }
     }
 
