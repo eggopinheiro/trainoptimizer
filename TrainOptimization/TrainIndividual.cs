@@ -4608,6 +4608,8 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         bool[] lvNextAvailable = null;
         HashSet<Int64> lvListGeneStopLocation = null;
         ISet<Gene> lvGenesStopLocationSet = null;
+        ISet<int> lvDependencySet = null;
+        ISet<int> lvEntranceSet = null;
         Gene lvNewGene = null;
         Gene lvGene = null;
         Gene lvGen = null;
@@ -5171,6 +5173,11 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 lvNextSwitch = Segment.GetNextSwitchSegment(lvGene.Coordinate, lvGene.Direction);
             }
 
+            if(lvNextSwitch != null)
+            {
+                lvEntranceSet = lvNextSwitch.GetEntrance(lvGene.Track, lvGene.Direction);
+            }
+
             lvCurrentTime = lvGene.HeadWayTime;
 
             if ((lvGene.Time > lvGene.HeadWayTime) && (lvGene.Time > lvCurrentTime))
@@ -5387,33 +5394,50 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
                         if (lvGen.Track <= lvNextAvailable.Length)
                         {
-                            if ((lvNextAvailable[lvGen.Track - 1] == true) && (lvGene.TrainId != lvGen.TrainId))
+                            if (lvGene.TrainId != lvGen.TrainId)
                             {
-                                lvNextAvailable[lvGen.Track - 1] = false;
-                                lvNextCapacity--;
+                                if (lvNextAvailable[lvGen.Track - 1] && (lvGene.TrainId != lvGen.TrainId))
+                                {
+                                    lvNextAvailable[lvGen.Track - 1] = false;
+                                    lvNextCapacity--;
 
 #if DEBUG
-                                if (DebugLog.EnableDebug)
-                                {
-                                    StringBuilder lvStrInfo = new StringBuilder();
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        StringBuilder lvStrInfo = new StringBuilder();
 
-                                    lvStrInfo.Clear();
-                                    lvStrInfo.Append("NextCapacity reduzida em 1 devido ao local de destino (");
-                                    lvStrInfo.Append(lvNextStopLocation);
-                                    lvStrInfo.Append(") estar ocupada pelo Gene ");
-                                    lvStrInfo.Append(lvGen.TrainId);
-                                    lvStrInfo.Append(" - ");
-                                    lvStrInfo.Append(lvGen.TrainName);
-                                    lvStrInfo.Append(" em ");
-                                    lvStrInfo.Append(lvGen.SegmentInstance.Location);
-                                    lvStrInfo.Append(".");
-                                    lvStrInfo.Append(lvGen.SegmentInstance.SegmentValue);
-                                    lvStrInfo.Append(", track ");
-                                    lvStrInfo.Append(lvGen.Track);
+                                        lvStrInfo.Clear();
+                                        lvStrInfo.Append("NextCapacity reduzida em 1 devido ao local de destino (");
+                                        lvStrInfo.Append(lvNextStopLocation);
+                                        lvStrInfo.Append(") estar ocupada pelo Gene ");
+                                        lvStrInfo.Append(lvGen.TrainId);
+                                        lvStrInfo.Append(" - ");
+                                        lvStrInfo.Append(lvGen.TrainName);
+                                        lvStrInfo.Append(" em ");
+                                        lvStrInfo.Append(lvGen.SegmentInstance.Location);
+                                        lvStrInfo.Append(".");
+                                        lvStrInfo.Append(lvGen.SegmentInstance.SegmentValue);
+                                        lvStrInfo.Append(", track ");
+                                        lvStrInfo.Append(lvGen.Track);
 
-                                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                                }
+                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                    }
 #endif
+                                }
+
+                                lvDependencySet = lvNextStopLocation.HasDependency(lvGen.Track, lvGene.Direction);
+
+                                if (lvDependencySet != null)
+                                {
+                                    foreach(int lvTrackNum in lvDependencySet)
+                                    {
+                                        if (lvNextAvailable[lvTrackNum - 1])
+                                        {
+                                            lvNextAvailable[lvTrackNum - 1] = false;
+                                            lvNextCapacity--;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

@@ -5,6 +5,7 @@ using System.ComponentModel;
 using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml;
 /// <summary>
 /// Criado por Eggo Pinheiro em 13/04/2015 18:56:58
 /// <summary>
@@ -25,6 +26,8 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     protected Segment[] mLeftSegment = null;
     protected Segment[] mRightSegment = null;
     protected int mDwellTimeOnEndStopLocation = 0; //seconds
+    protected Dictionary<int, ISet<int>> mLeftDependency = new Dictionary<int, ISet<int>>();
+    protected Dictionary<int, ISet<int>> mRightDependency = new Dictionary<int, ISet<int>>();
     private const int CSIDES = 2;
 
     public StopLocation()
@@ -692,6 +695,133 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         }
     }
 
+    public static void LoadList(string pStrFile)
+    {
+        StopLocation lvStopLocation;
+        string lvStrDependency;
+        string[] lvVarDependency;
+        string[] lvVarElements;
+        int lvKey;
+        int lvValue;
+
+        mListStopLoc = new List<StopLocation>();
+
+        try
+        {
+            XmlReader lvXmlReader = XmlReader.Create(pStrFile);
+
+            while (lvXmlReader.Read())
+            {
+                if (lvXmlReader.NodeType == XmlNodeType.Element)
+                {
+                    switch (lvXmlReader.Name)
+                    {
+                        case "StopLocation":
+                            lvStopLocation = new StopLocation();
+                            if (lvXmlReader["location"] != null)
+                            {
+                                lvStopLocation.Location = Convert.ToInt32(lvXmlReader["location"]);
+                            }
+
+                            if (lvXmlReader["start_coordinate"] != null)
+                            {
+                                lvStopLocation.Start_coordinate = Convert.ToInt32(lvXmlReader["start_coordinate"]);
+                            }
+
+                            if (lvXmlReader["end_coordinate"] != null)
+                            {
+                                lvStopLocation.End_coordinate = Convert.ToInt32(lvXmlReader["end_coordinate"]);
+                            }
+
+                            if (lvXmlReader["capacity"] != null)
+                            {
+                                lvStopLocation.Capacity = Convert.ToInt16(lvXmlReader["capacity"]);
+                            }
+
+                            if (lvXmlReader["end_dwell_time"] != null)
+                            {
+                                lvStopLocation.DwellTimeOnEndStopLocation = Convert.ToInt32(lvXmlReader["end_dwell_time"]);
+                            }
+
+                            if (lvXmlReader["left_dependency"] != null)
+                            {
+                                lvStrDependency = lvXmlReader["left_dependency"];
+                                lvVarDependency = lvStrDependency.Split(';');
+
+                                foreach(string lvElem in lvVarDependency)
+                                {
+                                    if(lvElem.IndexOf('-') > 0)
+                                    {
+                                        lvVarElements = lvElem.Split('-');
+
+                                        if(lvVarElements.Length == 2)
+                                        {
+                                            if(!Int32.TryParse(lvVarElements[0], out lvKey))
+                                            {
+                                                lvKey = 0;
+                                            }
+
+                                            if (!Int32.TryParse(lvVarElements[1], out lvValue))
+                                            {
+                                                lvValue = 0;
+                                            }
+                                            
+                                            if((lvKey > 0) && (lvValue > 0))
+                                            {
+                                                lvStopLocation.AddDependency(lvKey, lvValue, 1);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (lvXmlReader["right_dependency"] != null)
+                            {
+                                lvStrDependency = lvXmlReader["right_dependency"];
+                                lvVarDependency = lvStrDependency.Split(';');
+
+                                foreach (string lvElem in lvVarDependency)
+                                {
+                                    if (lvElem.IndexOf('-') > 0)
+                                    {
+                                        lvVarElements = lvElem.Split('-');
+
+                                        if (lvVarElements.Length == 2)
+                                        {
+                                            if (!Int32.TryParse(lvVarElements[0], out lvKey))
+                                            {
+                                                lvKey = 0;
+                                            }
+
+                                            if (!Int32.TryParse(lvVarElements[1], out lvValue))
+                                            {
+                                                lvValue = 0;
+                                            }
+
+                                            if ((lvKey > 0) && (lvValue > 0))
+                                            {
+                                                lvStopLocation.AddDependency(lvKey, lvValue, -1);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            mListStopLoc.Add(lvStopLocation);
+
+                            break;
+                    }
+                }
+            }
+
+            ImportList();
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
+        }
+    }
+
     public static void LoadList()
     {
         DataSet ds = null;
@@ -1032,7 +1162,68 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
 		return dt;
 	}
 
-	public int Location
+    public void AddDependency(int pKey, int pValue, int pDirection)
+    {
+        ISet<int> lvDependenceTracks;
+        Dictionary<int, ISet<int>> lvDependency = null;
+
+        if(pDirection > 0)
+        {
+            lvDependency = mLeftDependency;
+        }
+        else if(pDirection < 0)
+        {
+            lvDependency = mRightDependency;
+        }
+        else
+        {
+            return;
+        }
+
+        if (!lvDependency.ContainsKey(pKey))
+        {
+            lvDependenceTracks = new HashSet<int>();
+            lvDependenceTracks.Add(pValue);
+
+            lvDependency.Add(pKey, lvDependenceTracks);
+        }
+        else
+        {
+            lvDependenceTracks = lvDependency[pKey];
+            lvDependenceTracks.Add(pValue);
+        }
+    }
+
+    public ISet<int> HasDependency(int pKey, int pDirection)
+    {
+        ISet<int> lvRes = null;
+        Dictionary<int, ISet<int>> lvDependency = null;
+
+        if (pDirection > 0)
+        {
+            lvDependency = mLeftDependency;
+        }
+        else if (pDirection < 0)
+        {
+            lvDependency = mRightDependency;
+        }
+        else
+        {
+            return lvRes;
+        }
+
+        if (lvDependency.Count > 0)
+        {
+            if (lvDependency.ContainsKey(pKey))
+            {
+                lvRes = lvDependency[pKey];
+            }
+        }
+
+        return lvRes;
+    }
+
+    public int Location
 	{
 		get
 		{

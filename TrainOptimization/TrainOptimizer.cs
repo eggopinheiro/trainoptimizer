@@ -125,56 +125,6 @@ namespace TrainOptimization
             }
         }
 
-        private List<StopLocation> LoadStopLocations(string pStrFile)
-        {
-            List<StopLocation> lvRes = new List<StopLocation>();
-            StopLocation lvStopLocation;
-
-            XmlReader lvXmlReader = XmlReader.Create(pStrFile);
-
-            while (lvXmlReader.Read())
-            {
-                if (lvXmlReader.NodeType == XmlNodeType.Element)
-                {
-                    switch (lvXmlReader.Name)
-                    {
-                        case "StopLocation":
-                            lvStopLocation = new StopLocation();
-                            if (lvXmlReader["location"] != null)
-                            {
-                                lvStopLocation.Location = Convert.ToInt32(lvXmlReader["location"]);
-                            }
-
-                            if (lvXmlReader["start_coordinate"] != null)
-                            {
-                                lvStopLocation.Start_coordinate = Convert.ToInt32(lvXmlReader["start_coordinate"]);
-                            }
-
-                            if (lvXmlReader["end_coordinate"] != null)
-                            {
-                                lvStopLocation.End_coordinate = Convert.ToInt32(lvXmlReader["end_coordinate"]);
-                            }
-
-                            if (lvXmlReader["capacity"] != null)
-                            {
-                                lvStopLocation.Capacity = Convert.ToInt16(lvXmlReader["capacity"]);
-                            }
-
-                            if (lvXmlReader["end_dwell_time"] != null)
-                            {
-                                lvStopLocation.DwellTimeOnEndStopLocation = Convert.ToInt32(lvXmlReader["end_dwell_time"]);
-                            }
-
-                            lvRes.Add(lvStopLocation);
-
-                            break;
-                    }
-                }
-            }
-
-            return lvRes;
-        }
-
         private void LoadPriority(string pStrPriority, Dictionary<string, int> pPriority)
         {
             string[] lvVarElement;
@@ -232,7 +182,6 @@ namespace TrainOptimization
             Segment lvSegment = null;
             StopLocation lvStartStopLocation = null;
             StopLocation lvEndStopLocation = null;
-            StopLocation lvStopLocation = null;
             StopLocation lvNextStopLocation = null;
             Gene lvGene = null;
             Interdicao lvInterdicao = null;
@@ -250,6 +199,10 @@ namespace TrainOptimization
             int lvIndex = -1;
             int lvValue = -1;
             string lvStrMode = "";
+            string lvStrDependency;
+            string[] lvVarDependency;
+            string[] lvVarElements;
+            int lvKey;
             DateTime lvCurrTime = DateTime.MaxValue;
 
             lvStrMode = ConfigurationManager.AppSettings["OPT_MODE"];
@@ -344,31 +297,6 @@ namespace TrainOptimization
                 {
                     switch (lvXmlReader.Name)
                     {
-                        case "StopLocation":
-                            lvStopLocation = new StopLocation();
-                            if (lvXmlReader["location"] != null)
-                            {
-                                lvStopLocation.Location = Convert.ToInt32(lvXmlReader["location"]);
-                            }
-
-                            if (lvXmlReader["start_coordinate"] != null)
-                            {
-                                lvStopLocation.Start_coordinate = Convert.ToInt32(lvXmlReader["start_coordinate"]);
-                            }
-
-                            if (lvXmlReader["end_coordinate"] != null)
-                            {
-                                lvStopLocation.End_coordinate = Convert.ToInt32(lvXmlReader["end_coordinate"]);
-                            }
-
-                            if (lvXmlReader["capacity"] != null)
-                            {
-                                lvStopLocation.Capacity = Convert.ToInt16(lvXmlReader["capacity"]);
-                            }
-
-                            lvStopLocations.Add(lvStopLocation);
-
-                            break;
                         case "Segment":
                             lvSegment = new Segment();
 
@@ -404,6 +332,17 @@ namespace TrainOptimization
                             if(lvSegment.SegmentValue.Equals("WT"))
                             {
                                 lvSegment.IsSwitch = true;
+
+                                if (lvXmlReader["left_entrance"] != null)
+                                {
+                                    lvSegment.AddEntrances(lvXmlReader["left_entrance"], 1);
+                                }
+
+                                if (lvXmlReader["right_entrance"] != null)
+                                {
+                                    lvSegment.AddEntrances(lvXmlReader["right_entrance"], -1);
+                                }
+
                                 lvSwitches.Add(lvSegment);
                             }
 
@@ -645,7 +584,7 @@ namespace TrainOptimization
             Segment.SetList(lvSegments);
             Segment.SetListSwitch(lvSwitches);
             Segment.LoadNeighborSwitch();
-            StopLocation.ImportList(lvStopLocations);
+            StopLocation.LoadList(pStrFile);
             Segment.LoadStopLocations(StopLocation.GetList());
 
             for (int i = 0; i < lvTrains.Count; i++)
@@ -1070,7 +1009,7 @@ namespace TrainOptimization
                 Segment.LoadList();
                 if (mLoadStopLocationsFrom.Equals("xml"))
                 {
-                    StopLocation.ImportList(LoadStopLocations(ConfigurationManager.AppSettings["LOG_PATH"] + "stoplocations.xml"));
+                    StopLocation.LoadList(ConfigurationManager.AppSettings["LOG_PATH"] + "stoplocations.xml");
                 }
                 else
                 {

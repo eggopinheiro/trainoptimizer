@@ -25,6 +25,8 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
     protected Int16 mTrack = 0;
     protected bool mAllowSameLineMov = false;
     protected bool mIsSwitch = false;
+    protected Dictionary<int, ISet<int>> mLeftEntrance = null;
+    protected Dictionary<int, ISet<int>> mRightEntrance = null;
 
     public Segment()
 	{
@@ -970,6 +972,126 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         mListSwitch = pList;
     }
 
+    public void AddEntrances(string pStrInput, int pDirection)
+    {
+        Dictionary<int, ISet<int>> lvEntrance = null;
+        string[] lvVarEntrance;
+        string[] lvVarElements;
+        int lvKey;
+        int lvValue;
+
+        if (mIsSwitch)
+        {
+            if (pDirection > 0)
+            {
+                lvEntrance = mLeftEntrance;
+            }
+            else if (pDirection < 0)
+            {
+                lvEntrance = mRightEntrance;
+            }
+            else
+            {
+                return;
+            }
+
+            lvVarEntrance = pStrInput.Split(';');
+
+            foreach (string lvElem in lvVarEntrance)
+            {
+                if (lvElem.IndexOf('-') > 0)
+                {
+                    lvVarElements = lvElem.Split('-');
+
+                    if (lvVarElements.Length == 2)
+                    {
+                        if (!Int32.TryParse(lvVarElements[0], out lvKey))
+                        {
+                            lvKey = 0;
+                        }
+
+                        if (!Int32.TryParse(lvVarElements[1], out lvValue))
+                        {
+                            lvValue = 0;
+                        }
+
+                        if ((lvKey > 0) && (lvValue > 0))
+                        {
+                            AddEntrance(lvKey, lvValue, pDirection);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void AddEntrance(int pKey, int pValue, int pDirection)
+    {
+        ISet<int> lvDependenceTracks;
+        Dictionary<int, ISet<int>> lvEntrance = null;
+
+        if (pDirection > 0)
+        {
+            lvEntrance = mLeftEntrance;
+        }
+        else if (pDirection < 0)
+        {
+            lvEntrance = mRightEntrance;
+        }
+        else
+        {
+            return;
+        }
+
+        if (lvEntrance != null)
+        {
+            if (!lvEntrance.ContainsKey(pKey))
+            {
+                lvDependenceTracks = new HashSet<int>();
+                lvDependenceTracks.Add(pValue);
+
+                lvEntrance.Add(pKey, lvDependenceTracks);
+            }
+            else
+            {
+                lvDependenceTracks = lvEntrance[pKey];
+                lvDependenceTracks.Add(pValue);
+            }
+        }
+    }
+
+    public ISet<int> GetEntrance(int pKey, int pDirection)
+    {
+        ISet<int> lvRes = null;
+        Dictionary<int, ISet<int>> lvEntrance = null;
+
+        if (pDirection > 0)
+        {
+            lvEntrance = mLeftEntrance;
+        }
+        else if (pDirection < 0)
+        {
+            lvEntrance = mRightEntrance;
+        }
+        else
+        {
+            return lvRes;
+        }
+
+        if (lvEntrance != null)
+        {
+            if (lvEntrance.Count > 0)
+            {
+                if (lvEntrance.ContainsKey(pKey))
+                {
+                    lvRes = lvEntrance[pKey];
+                }
+            }
+        }
+
+        return lvRes;
+    }
+
     public virtual void Clear()
 	{
 
@@ -1195,6 +1317,12 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         set
         {
             mIsSwitch = value;
+
+            if(mIsSwitch)
+            {
+                mLeftEntrance = new Dictionary<int, ISet<int>>();
+                mRightEntrance = new Dictionary<int, ISet<int>>();
+            }
         }
     }
 
