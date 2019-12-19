@@ -887,6 +887,9 @@ namespace TrainOptimization
                                 lvRes = lvPopulation.NextGeneration();
                                 //lvPopulation.dump(lvPopulation.GetBestIndividual());
 
+                                lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                                lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+
                                 if (!lvRes)
                                 {
                                     break;

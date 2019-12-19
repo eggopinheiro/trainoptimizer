@@ -360,6 +360,18 @@ public class Population
         mStopWatch.Start();
 #endif
 
+
+        SortedList<int, int> lvTeste = new SortedList<int, int>();
+
+
+
+#if DEBUG
+        mStopWatch.Stop();
+
+        DebugLog.Logar("mStopWatch for GenerateIndividual = " + mStopWatch.Elapsed, false, pIndet: TrainIndividual.IDLog);
+#endif
+
+
         List<int> lvSavedIndividualsIds = ListIndividualsToLoad();
 
         if (MAX_PARALLEL_THREADS > 1)
@@ -436,6 +448,8 @@ public class Population
         else
         {
             mIndividuals.Sort();
+
+            //((TrainIndividual)mIndividuals[0]).GenerateFlotFiles(ConfigurationManager.AppSettings["LOG_PATH"] + "Logs\\");
         }
 
         if (mECS && (mECSClusters <= mIndividuals.Count))

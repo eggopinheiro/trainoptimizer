@@ -20,7 +20,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
     private IFitness<Gene> mFitness;
     private Dictionary<int, HashSet<Int64>> mStopLocationOcupation = null;
     private Dictionary<int, Gene[]> mStopLocationDeparture = null;
-    private Dictionary<int, List<Gene>> mStopLocationArrival = null;
+    private Dictionary<int, ISet<Gene>> mStopLocationArrival = null;
     private Dictionary<Int64, Gene> mDicTrain = null;
     private Dictionary<Int64, List<Trainpat>> mPATs = null;
     private Dictionary<int, int> mDicDistRef = null;
@@ -39,6 +39,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
     private int mTotalGens = 0;
     private bool mCalcDistRef = false;
     private Random mRandom = null;
+    private DescendingGeneTimeComparar mDescGeneTimeComparer;
     private static int mTrainLen = 350000;
     private static double mTrainLenKM = 3.5;
     private static int mLimitDays = 3;
@@ -89,6 +90,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         try
         {
             mPATs = pPATs;
+            mDescGeneTimeComparer = new DescendingGeneTimeComparar();
 
             mStopLocationOcupation = new Dictionary<int, HashSet<Int64>>();
             foreach (StopLocation lvStopLocation in StopLocation.GetList())
@@ -97,11 +99,11 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             }
 
             mStopLocationDeparture = new Dictionary<int, Gene[]>();
-            mStopLocationArrival = new Dictionary<int, List<Gene>>();
+            mStopLocationArrival = new Dictionary<int, ISet<Gene>>();
             foreach (StopLocation lvStopLocation in StopLocation.GetList())
             {
                 mStopLocationDeparture.Add(lvStopLocation.Location, new Gene[lvStopLocation.Capacity * StopLocation.SIDES]);
-                mStopLocationArrival.Add(lvStopLocation.Location, new List<Gene>());
+                mStopLocationArrival.Add(lvStopLocation.Location, new SortedSet<Gene>(mDescGeneTimeComparer));
             }
 
             if (mCalcDistRef)
@@ -179,7 +181,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         return mStopLocationDeparture;
     }
 
-    public Dictionary<int, List<Gene>> GetStopLocationArrival()
+    public Dictionary<int, ISet<Gene>> GetStopLocationArrival()
     {
         return mStopLocationArrival;
     }
@@ -246,7 +248,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
     {
         Gene lvObjGene;
         Gene[] lvGenesStopLocation = null;
-        List<Gene> lvGenesStopLocationList = null;
+        ISet<Gene> lvGenesStopLocationSet = null;
         HashSet<Int64> lvListGeneStopLocation = null;
 
         try
@@ -282,10 +284,10 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         {
                             if (lvGene.StopLocation != null)
                             {
-                                lvGenesStopLocationList = mStopLocationArrival[lvGene.StopLocation.Location];
+                                lvGenesStopLocationSet = mStopLocationArrival[lvGene.StopLocation.Location];
                                 if (lvGene.Track <= lvGene.StopLocation.Capacity)
                                 {
-                                    lvGenesStopLocationList.Add(lvGene);
+                                    lvGenesStopLocationSet.Add(lvGene);
                                 }
 
                                 lvListGeneStopLocation = mStopLocationOcupation[lvGene.StopLocation.Location];
@@ -1110,8 +1112,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
     public void DumpStopArrivalLocation(StopLocation pStopLocation, int pCount, string pStrInfo = "")
     {
-        List<Gene> lvGenes = null;
-        Gene lvGene = null;
+        ISet<Gene> lvGenes = null;
         int lvCount;
 
         if (DebugLog.EnableDebug)
@@ -1132,7 +1133,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         pCount = lvGenes.Count - pCount;
                     }
 
-                    for(int i = lvGenes.Count-1; i >= pCount; i--)
+                    foreach(Gene lvGene in lvGenes)
                     {
                         if (lvGene != null)
                         {
@@ -1157,7 +1158,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 DebugLog.Logar(" ----------------------------  DumpStopArrivalLocation (" + pStrInfo + ") ------------------------------------ ", pIndet: TrainIndividual.IDLog);
 
                 lvCount = 0;
-                foreach (KeyValuePair<int, List<Gene>> lvStopLocationEntry in mStopLocationArrival)
+                foreach (KeyValuePair<int, ISet<Gene>> lvStopLocationEntry in mStopLocationArrival)
                 {
                     if (pCount > -1)
                     {
@@ -2497,8 +2498,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
     private void GetHeadWays(Gene pGene, StopLocation pStopLocation, int pDirection, ref List<DateTime[]> pHeadwaysTime)
     {
         DateTime[] lvValues;
-        Gene lvGene = null;
-        List<Gene> lvGenes = null;
+        ISet<Gene> lvGenes = null;
         int lvStopLocationValue = -1;
 
         if (pStopLocation != null)
@@ -2516,9 +2516,8 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             {
                 lvGenes = mStopLocationArrival[lvStopLocationValue];
 
-                for (int i = lvGenes.Count-1; i >= 0; i--)
+                foreach(Gene lvGene in lvGenes)
                 {
-                    lvGene = lvGenes[i];
                     if (lvGene != null)
                     {
                         if (pGene.TrainId != lvGene.TrainId)
@@ -2574,6 +2573,21 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                             }
                             else if((lvGene.Time < pGene.HeadWayTime))
                             {
+#if DEBUG
+                                if (DebugLog.EnableDebug)
+                                {
+                                    StringBuilder lvStrInfo = new StringBuilder();
+
+                                    lvStrInfo.Append("GetHeadWays => Breaking devido a lvGene.Time < pGene.HeadWayTime (lvGene.Time: ");
+                                    lvStrInfo.Append(lvGene.Time);
+                                    lvStrInfo.Append("; pGene.HeadWayTime: ");
+                                    lvStrInfo.Append(pGene.HeadWayTime);
+                                    lvStrInfo.Append(")");
+
+                                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                }
+#endif
+
                                 break;
                             }
                         }
@@ -4693,7 +4707,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         bool[] lvNextAvailable = null;
         HashSet<Int64> lvListGeneStopLocation = null;
         Gene[] lvGenesStopLocation = null;
-        List<Gene> lvGenesStopLocationList = null;
+        ISet<Gene> lvGenesStopLocationList = null;
         Gene lvNewGene = null;
         Gene lvGene = null;
         Gene lvGen = null;
@@ -7276,5 +7290,47 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             return lvRes;
         }
 
+    }
+
+    private class DescendingGeneTimeComparar : IComparer<Gene>
+    {
+        public int Compare(Gene x, Gene y)
+        {
+            int lvRes;
+
+            if (x == null)
+            {
+                lvRes = 1;
+            }
+            else if (y == null)
+            {
+                lvRes = -1;
+            }
+            else if (x.HeadWayTime > y.HeadWayTime)
+            {
+                lvRes = -1;
+            }
+            else if (x.HeadWayTime < y.HeadWayTime)
+            {
+                lvRes = 1;
+            }
+            else
+            {
+                if (x.Time > y.Time)
+                {
+                    lvRes = -1;
+                }
+                else if (x.Time < y.Time)
+                {
+                    lvRes = 1;
+                }
+                else
+                {
+                    lvRes = 0;
+                }
+            }
+
+            return lvRes;
+        }
     }
 }
