@@ -2254,7 +2254,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 #endif
                             //Dump(mList, 0L);
                             DebugLog.EnableDebug = lvLogEnabled;
-                            //GenerateFlotFiles(DebugLog.LogPath);
+                            GenerateFlotFiles(DebugLog.LogPath);
                             lvRes = false;
                             DebugLog.Save("Individuo " + mUniqueId + " criado com deadlock -> Inválido !");
 
@@ -3105,6 +3105,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
     {
         bool[] lvRes = new bool[pNextStopLocation.Capacity];
         StopLocation lvStopLocation = null;
+        ISet<int> lvDependencySet;
         DateTime lvEndInterditionTime = DateTime.MinValue;
         Gene lvGene = null;
         int lvLimitPosition = Int32.MinValue;
@@ -3218,6 +3219,13 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                     if (!pOccup[i])
                     {
                         lvMovAllowed = true;
+
+                        lvDependencySet = lvStopLocation.HasDependency(i + 1, pGene.Direction * (-1));
+
+                        if(lvDependencySet != null)
+                        {
+                            lvRes[i] = false;
+                        }
                     }
                     else
                     {
@@ -4978,38 +4986,95 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         lvNextCapacity = 0;
                         for (int i = 0; i < lvNextAvailable.Length; i++)
                         {
-                            lvNextAvailable[i] = true;
-                            lvNextCapacity++;
-                        }
-
-                        lvIsBetweenSwitch = false;
-#if DEBUG
-                        if (DebugLog.EnableDebug)
-                        {
-                            DumpBoolArray(lvNextAvailable);
-                        }
-#endif
-                    }
-                    else
-                    {
-                        lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
-                        lvNextCapacity = 0;
-                        for (int i = 0; i < lvNextAvailable.Length; i++)
-                        {
-                            if (lvNextAvailable[i])
+                            if (((lvGene.Track - 1) == i) && lvNextAvailable[i])
                             {
+                                lvNextAvailable[i] = true;
                                 lvNextCapacity++;
+                            }
+                            else
+                            {
+                                lvNextAvailable[i] = false;
                             }
                         }
 
-                        lvIsBetweenSwitch = true;
 #if DEBUG
                         if (DebugLog.EnableDebug)
                         {
-                            DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("NextCapacity reduzida para 1 devido ao local atual do Gene ser ");
+                            lvStrInfo.Append(lvGene.SegmentInstance.Location);
+                            lvStrInfo.Append(".");
+                            lvStrInfo.Append(lvGene.SegmentInstance.SegmentValue);
+
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+
                             DumpBoolArray(lvNextAvailable);
                         }
 #endif
+
+                        lvIsBetweenSwitch = false;
+                    }
+                    else
+                    {
+                        if (lvStopLocation.NextSwitch != null)
+                        {
+                            lvNoEntranceSet = lvStopLocation.NextSwitch.GetNoEntrance(lvGene.Track, lvGene.Direction);
+
+                            if ((lvNoEntranceSet != null) && (lvNoEntranceSet.Count > 0))
+                            {
+                                lvNextAvailable = new bool[lvNextStopLocation.Capacity];
+                                lvNextCapacity = 0;
+                                foreach (int lvNoEntranceTrack in lvNoEntranceSet)
+                                {
+                                    if (lvNextAvailable[lvNoEntranceTrack - 1])
+                                    {
+                                        lvNextAvailable[lvNoEntranceTrack - 1] = false;
+                                        lvNextCapacity--;
+                                    }
+                                }
+
+                                if (lvNextCapacity == 1)
+                                {
+#if DEBUG
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        StringBuilder lvStrInfo = new StringBuilder();
+
+                                        lvStrInfo.Clear();
+                                        lvStrInfo.Append("lvNextCapacity == 1 após verificar lvNoEntranceSet !");
+                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+
+                                        DumpBoolArray(lvNextAvailable);
+                                    }
+#endif
+
+                                    lvIsBetweenSwitch = false;
+                                }
+                                else
+                                {
+                                    lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+                                    lvNextCapacity = 0;
+                                    for (int i = 0; i < lvNextAvailable.Length; i++)
+                                    {
+                                        if (lvNextAvailable[i])
+                                        {
+                                            lvNextCapacity++;
+                                        }
+                                    }
+
+                                    lvIsBetweenSwitch = true;
+#if DEBUG
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
+                                        DumpBoolArray(lvNextAvailable);
+                                    }
+#endif
+                                }
+                            }
+                        }
                     }
                 }
                 else
@@ -5020,9 +5085,33 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                         lvNextCapacity = 0;
                         for (int i = 0; i < lvNextAvailable.Length; i++)
                         {
-                            lvNextAvailable[i] = true;
-                            lvNextCapacity++;
+                            if (((lvGene.Track - 1) == i) && lvNextAvailable[i])
+                            {
+                                lvNextAvailable[i] = true;
+                                lvNextCapacity++;
+                            }
+                            else
+                            {
+                                lvNextAvailable[i] = false;
+                            }
                         }
+
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("NextCapacity reduzida para 1 devido ao local atual do Gene ser ");
+                            lvStrInfo.Append(lvGene.SegmentInstance.Location);
+                            lvStrInfo.Append(".");
+                            lvStrInfo.Append(lvGene.SegmentInstance.SegmentValue);
+
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+
+                            DumpBoolArray(lvNextAvailable);
+                        }
+#endif
 
                         lvIsBetweenSwitch = false;
 #if DEBUG
@@ -5034,25 +5123,65 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                     }
                     else
                     {
-                        lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
-
-                        lvNextCapacity = 0;
-                        for (int i = 0; i < lvNextAvailable.Length; i++)
+                        if (lvStopLocation.PrevSwitch != null)
                         {
-                            if (lvNextAvailable[i])
+                            lvNoEntranceSet = lvStopLocation.PrevSwitch.GetNoEntrance(lvGene.Track, lvGene.Direction);
+
+                            if ((lvNoEntranceSet != null) && (lvNoEntranceSet.Count > 0))
                             {
-                                lvNextCapacity++;
+                                lvNextAvailable = new bool[lvNextStopLocation.Capacity];
+                                lvNextCapacity = 0;
+                                foreach (int lvNoEntranceTrack in lvNoEntranceSet)
+                                {
+                                    if (lvNextAvailable[lvNoEntranceTrack - 1])
+                                    {
+                                        lvNextAvailable[lvNoEntranceTrack - 1] = false;
+                                        lvNextCapacity--;
+                                    }
+                                }
+
+                                if (lvNextCapacity == 1)
+                                {
+#if DEBUG
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        StringBuilder lvStrInfo = new StringBuilder();
+
+                                        lvStrInfo.Clear();
+                                        lvStrInfo.Append("lvNextCapacity == 1 após verificar lvNoEntranceSet !");
+                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+
+                                        DumpBoolArray(lvNextAvailable);
+                                    }
+#endif
+
+                                    lvIsBetweenSwitch = false;
+                                }
+                                else
+                                {
+
+                                    lvNextAvailable = VerifySegmentDeadLock(lvGene, lvNextStopLocation, lvNextSwitch, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+
+                                    lvNextCapacity = 0;
+                                    for (int i = 0; i < lvNextAvailable.Length; i++)
+                                    {
+                                        if (lvNextAvailable[i])
+                                        {
+                                            lvNextCapacity++;
+                                        }
+                                    }
+
+                                    lvIsBetweenSwitch = true;
+#if DEBUG
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
+                                        DumpBoolArray(lvNextAvailable);
+                                    }
+#endif
+                                }
                             }
                         }
-
-                        lvIsBetweenSwitch = true;
-#if DEBUG
-                        if (DebugLog.EnableDebug)
-                        {
-                            DebugLog.Logar("lvNextCapacity = " + lvNextCapacity + " devido a VerifySegmentDeadLock", pIndet: TrainIndividual.IDLog);
-                            DumpBoolArray(lvNextAvailable);
-                        }
-#endif
                     }
                 }
             }
@@ -5173,39 +5302,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 lvNextSwitch = Segment.GetNextSwitchSegment(lvGene.Coordinate, lvGene.Direction);
             }
 
-            if(lvNextSwitch != null)
-            {
-                lvNoEntranceSet = lvNextSwitch.GetNoEntrance(lvGene.Track, lvGene.Direction);
-
-                if((lvNoEntranceSet != null) && (lvNoEntranceSet.Count > 0))
-                {
-                    foreach(int lvNoEntranceTrack in lvNoEntranceSet)
-                    {
-                        if(lvNextAvailable[lvNoEntranceTrack-1])
-                        {
-                            lvNextAvailable[lvNoEntranceTrack - 1] = false;
-                            lvNextCapacity--;
-                        }
-                    }
-
-                    if (lvNextCapacity == 0)
-                    {
-#if DEBUG
-                        if (DebugLog.EnableDebug)
-                        {
-                            StringBuilder lvStrInfo = new StringBuilder();
-
-                            lvStrInfo.Clear();
-                            lvStrInfo.Append("lvNextCapacity == 0 após verificar lvNoEntranceSet !");
-                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                        }
-#endif
-
-                        return lvRes;
-                    }
-                }
-            }
-
             lvCurrentTime = lvGene.HeadWayTime;
 
             if ((lvGene.Time > lvGene.HeadWayTime) && (lvGene.Time > lvCurrentTime))
@@ -5262,37 +5358,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             lvInterdition = null;
             if ((lvGene.Track <= lvNextCapacity) && !lvIsBetweenSwitch)
             {
-                lvNextCapacity = 0;
-                for (int i = 0; i < lvNextAvailable.Length; i++)
-                {
-                    if (((lvGene.Track - 1) == i) && lvNextAvailable[i])
-                    {
-                        lvNextAvailable[i] = true;
-                        lvNextCapacity++;
-                    }
-                    else
-                    {
-                        lvNextAvailable[i] = false;
-                    }
-                }
-
-#if DEBUG
-                if (DebugLog.EnableDebug)
-                {
-                    StringBuilder lvStrInfo = new StringBuilder();
-
-                    lvStrInfo.Clear();
-                    lvStrInfo.Append("NextCapacity reduzida para 1 devido ao local atual do Gene ser ");
-                    lvStrInfo.Append(lvGene.SegmentInstance.Location);
-                    lvStrInfo.Append(".");
-                    lvStrInfo.Append(lvGene.SegmentInstance.SegmentValue);
-
-                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-
-                    DumpBoolArray(lvNextAvailable);
-                }
-#endif
-
                 if (mStopLocationOcupation.ContainsKey(lvNextStopLocationValue))
                 {
                     foreach (Int64 lvTrainId in mStopLocationOcupation[lvNextStopLocationValue])
@@ -7115,6 +7180,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                             DebugLog.Logar("lvGene.Location = " + lvGene.SegmentInstance.Location, pUseDateInfo, pIndet: TrainIndividual.IDLog);
                             DebugLog.Logar("lvGene.UD = " + lvGene.SegmentInstance.SegmentValue, pUseDateInfo, pIndet: TrainIndividual.IDLog);
                             DebugLog.Logar("lvGene.Coordinate = " + lvGene.Coordinate, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.Direction = " + lvGene.Direction, pUseDateInfo, TrainIndividual.IDLog);
                             DebugLog.Logar("lvGene.End = " + lvGene.End, pUseDateInfo, pIndet: TrainIndividual.IDLog);
                             DebugLog.Logar("lvGene.Time = " + lvGene.Time, pUseDateInfo, pIndet: TrainIndividual.IDLog);
                             DebugLog.Logar("lvGene.Speed = " + lvGene.Speed, pUseDateInfo, pIndet: TrainIndividual.IDLog);

@@ -1212,7 +1212,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
             return lvRes;
         }
 
-        if (lvDependency.Count > 0)
+        if ((lvDependency != null) && (lvDependency.Count > 0))
         {
             if (lvDependency.ContainsKey(pKey))
             {
