@@ -3502,6 +3502,10 @@ public class Population
         pSon = null;
         pDaughter = null;
 
+#if DEBUG
+        DebugLog.Logar(" ------------------------------------------ DoCrossOver  ------------------------------------------", pIndet: TrainIndividual.IDLog);
+#endif
+
         lvCount = pMother.Count;
         if (pFather.Count < lvCount)
         {
@@ -3553,7 +3557,9 @@ public class Population
 
             lvInitialSon = pFather.GetGenes(mTrainList.Count, lvCrossOverPos[0]);
             pSon = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+            ((TrainIndividual)pSon).DumpStopArrivalLocation(null, -1, "pSon");
             pSon.AddGenes(lvInitialSon);
+            ((TrainIndividual)pSon).DumpStopArrivalLocation(null, -1, "pSon");
             foreach (Gene lvGen in lvInitialSon)
             {
                 if (lvGen.State == Gene.STATE.OUT)
@@ -3565,7 +3571,9 @@ public class Population
 
             lvInitialDaughter = pMother.GetGenes(mTrainList.Count, lvCrossOverPos[0]);
             pDaughter = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+            ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, -1, "pDaughter");
             pDaughter.AddGenes(lvInitialDaughter);
+            ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, -1, "pDaughter");
 
             foreach (Gene lvGen in lvInitialDaughter)
             {
@@ -3575,6 +3583,14 @@ public class Population
                 }
             }
             //DebugLog.Logar("DoCrossOver.pDaughter.VerifyConflict() = " + ((TrainIndividual)pDaughter).VerifyConflict(), pIndet: TrainIndividual.IDLog);
+
+#if DEBUG
+            DebugLog.Logar("DoCrossOver => Inicio de adicao de Genes por processGene (pSon: " + pSon.GetUniqueId() + ", pDaughter: " + pDaughter.GetUniqueId() + ") ...", pIndet: TrainIndividual.IDLog);
+            ((TrainIndividual)pSon).DumpCurrentPosDic("DoCrossOver.pSon apos AddGenes");
+            ((TrainIndividual)pSon).DumpStopArrivalLocation(null, 0, "pSon");
+            ((TrainIndividual)pDaughter).DumpCurrentPosDic("DoCrossOver.pDaughter apos AddGenes");
+            ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, 0, "pDaughter");
+#endif
 
             for (int ind = 1; ind <= lvCrossOverPointsNum; ind++)
             {
@@ -3617,8 +3633,8 @@ public class Population
                                 {
                                     if (!((TrainIndividual)pSon).hasInDic(lvGeneMother.TrainId) && (!lvHashSetSonNotAllowed.Contains(lvGeneMother.TrainId)))
                                     {
-                                        ((TrainIndividual)pSon).DumpCurrentPosDic("pSon", 0);
-                                        ((TrainIndividual)pSon).DumpCurrentState("pSon", 0);
+                                        ((TrainIndividual)pSon).DumpCurrentPosDic("pSon");
+                                        ((TrainIndividual)pSon).DumpCurrentState("pSon");
                                         DebugLog.Logar("Erro ao tentar adicoinar Gene em crossover:" + lvGeneMother, pIndet: TrainIndividual.IDLog);
                                         DebugLog.Logar("lvQueueSon.Count = " + lvQueueSon.Count, pIndet: TrainIndividual.IDLog);
                                         ((TrainIndividual)pSon).DumpStopLocation(null);
@@ -3678,8 +3694,8 @@ public class Population
                                 {
                                     if (!((TrainIndividual)pSon).hasInDic(lvGeneFather.TrainId) && (!lvHashSetSonNotAllowed.Contains(lvGeneFather.TrainId)))
                                     {
-                                        ((TrainIndividual)pSon).DumpCurrentPosDic("pSon", 0);
-                                        ((TrainIndividual)pSon).DumpCurrentState("pSon", 0);
+                                        ((TrainIndividual)pSon).DumpCurrentPosDic("pSon");
+                                        ((TrainIndividual)pSon).DumpCurrentState("pSon");
                                         DebugLog.Logar("Erro ao tentar adicoinar Gene em crossover:" + lvGeneFather, pIndet: TrainIndividual.IDLog);
                                         DebugLog.Logar("lvQueueSon.Count = " + lvQueueSon.Count, pIndet: TrainIndividual.IDLog);
                                         ((TrainIndividual)pSon).DumpStopLocation(null);
@@ -3741,8 +3757,8 @@ public class Population
                                 {
                                     if (!((TrainIndividual)pDaughter).hasInDic(lvGeneFather.TrainId) && (!lvHashSetDaughterNotAllowed.Contains(lvGeneFather.TrainId)))
                                     {
-                                        ((TrainIndividual)pDaughter).DumpCurrentPosDic("pDaughter", 0);
-                                        ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter", 0);
+                                        ((TrainIndividual)pDaughter).DumpCurrentPosDic("pDaughter");
+                                        ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter");
                                         DebugLog.Logar("Erro ao tentar adicoinar Gene em crossover:" + lvGeneFather, pIndet: TrainIndividual.IDLog);
                                         DebugLog.Logar("lvQueueDaughter.Count = " + lvQueueDaughter.Count, pIndet: TrainIndividual.IDLog);
                                         ((TrainIndividual)pDaughter).DumpStopLocation(null);
@@ -3802,8 +3818,8 @@ public class Population
                                 {
                                     if (!((TrainIndividual)pDaughter).hasInDic(lvGeneMother.TrainId) && (!lvHashSetDaughterNotAllowed.Contains(lvGeneMother.TrainId)))
                                     {
-                                        ((TrainIndividual)pDaughter).DumpCurrentPosDic("pDaughter", 0);
-                                        ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter", 0);
+                                        ((TrainIndividual)pDaughter).DumpCurrentPosDic("pDaughter");
+                                        ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter");
                                         DebugLog.Logar("Erro ao tentar adicoinar Gene em crossover:" + lvGeneMother, pIndet: TrainIndividual.IDLog);
                                         DebugLog.Logar("lvQueueDaughter.Count = " + lvQueueDaughter.Count, pIndet: TrainIndividual.IDLog);
                                         ((TrainIndividual)pDaughter).DumpStopLocation(null);
@@ -3843,6 +3859,8 @@ public class Population
 
             if (pSon != null)
             {
+                ((TrainIndividual)pSon).DumpStopArrivalLocation(null, -1, "pSon");
+
                 if (lvQueueSon.Count > 0)
                 {
                     AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
@@ -3872,6 +3890,8 @@ public class Population
 
             if (pDaughter != null)
             {
+                //((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, -1, "pDaughter");
+
                 if (lvQueueDaughter.Count > 0)
                 {
                     AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
@@ -3899,6 +3919,10 @@ public class Population
                     pDaughter = null;
                 }
             }
+
+#if DEBUG
+            DebugLog.Logar(" -----------------------------------------------------------------------------------------------------", pIndet: TrainIndividual.IDLog);
+#endif
 
             //DebugLog.Logar("DoCrossOver.pSon.VerifyConflict() = " + ((TrainIndividual)pSon).VerifyConflict(), pIndet: TrainIndividual.IDLog);
             //DebugLog.Logar("DoCrossOver.pDaughter.VerifyConflict() = " + ((TrainIndividual)pDaughter).VerifyConflict(), pIndet: TrainIndividual.IDLog);

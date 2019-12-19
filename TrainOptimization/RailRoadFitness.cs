@@ -226,7 +226,7 @@ public class RailRoadFitness : IFitness<Gene>
                         //((TrainIndividual)pIndividual).GenerateFlotFiles(DebugLog.LogPath);
                         //((TrainIndividual)pIndividual).Dump(lvFitnessElem.TrainId, lvFitnessElement.EndStopLocation);
 #endif
-                        lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours + lvFitnessElem.Optimun * 2);
+                        lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours + lvFitnessElem.Optimun * 10);
                         //lvRes += (lvFitnessElem.Optimun * 100);
                     }
                     lvCount++;
