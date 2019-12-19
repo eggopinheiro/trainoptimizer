@@ -333,14 +333,14 @@ namespace TrainOptimization
                             {
                                 lvSegment.IsSwitch = true;
 
-                                if (lvXmlReader["left_entrance"] != null)
+                                if (lvXmlReader["left_no_entrance"] != null)
                                 {
-                                    lvSegment.AddEntrances(lvXmlReader["left_entrance"], 1);
+                                    lvSegment.AddNoEntrances(lvXmlReader["left_no_entrance"], 1);
                                 }
 
-                                if (lvXmlReader["right_entrance"] != null)
+                                if (lvXmlReader["right_no_entrance"] != null)
                                 {
-                                    lvSegment.AddEntrances(lvXmlReader["right_entrance"], -1);
+                                    lvSegment.AddNoEntrances(lvXmlReader["right_no_entrance"], -1);
                                 }
 
                                 lvSwitches.Add(lvSegment);

@@ -5,6 +5,7 @@ using System.ComponentModel;
 using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml;
 /// <summary>
 /// Criado por Eggo Pinheiro em 13/04/2015 18:56:55
 /// <summary>
@@ -14,6 +15,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 {
     protected static List<Segment> mListSegment = null;
     protected static List<Segment> mListSwitch = null;
+    protected const string mSwitchParameterFile = "switches_rules.xml";
     protected int lvlocation;
 	protected string lvsegment;
 	protected int lvstart_coordinate;
@@ -25,8 +27,8 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
     protected Int16 mTrack = 0;
     protected bool mAllowSameLineMov = false;
     protected bool mIsSwitch = false;
-    protected Dictionary<int, ISet<int>> mLeftEntrance = null;
-    protected Dictionary<int, ISet<int>> mRightEntrance = null;
+    protected Dictionary<int, ISet<int>> mLeftNoEntrance = null;
+    protected Dictionary<int, ISet<int>> mRightNoEntrance = null;
 
     public Segment()
 	{
@@ -899,8 +901,51 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         }
     }
 
+    private static void LoadSwitchesParameters(string pCrossoverSide, Segment pSegment)
+    {
+        if (!pSegment.IsSwitch) return;
+
+        try
+        {
+            XmlReader lvXmlReader = XmlReader.Create(mSwitchParameterFile);
+
+            while (lvXmlReader.Read())
+            {
+                if (lvXmlReader.NodeType == XmlNodeType.Element)
+                {
+                    switch (lvXmlReader.Name)
+                    {
+                        case "Switch":
+                            if (lvXmlReader["name"] != null)
+                            {
+                                if(pCrossoverSide.Equals(lvXmlReader["name"]))
+                                {
+                                    if (lvXmlReader["left_no_entrance"] != null)
+                                    {
+                                        pSegment.AddNoEntrances(lvXmlReader["left_no_entrance"], 1);
+                                    }
+
+                                    if (lvXmlReader["right_no_entrance"] != null)
+                                    {
+                                        pSegment.AddNoEntrances(lvXmlReader["right_no_entrance"], -1);
+                                    }
+                                }
+                            }
+
+                            break;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
+        }
+    }
+
     public static void LoadList()
     {
+        string lvCrossoverSide;
         mListSegment = new List<Segment>();
         mListSwitch = new List<Segment>();
 
@@ -930,6 +975,14 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
             if (lvElement.SegmentValue.StartsWith("CV03") || lvElement.SegmentValue.Equals("WT") || (lvElement.IsSwitch && (lvElement.Track == 1) && !lvElement.SegmentValue.StartsWith("TE")))
             {
                 lvElement.IsSwitch = true;
+
+                lvCrossoverSide = ((row["crossover_side"] == DBNull.Value) ? "" : row["crossover_side"].ToString());
+
+                if(lvCrossoverSide.Length > 0)
+                {
+                    LoadSwitchesParameters(lvCrossoverSide, lvElement);
+                }
+
                 mListSwitch.Add(lvElement);
             }
             else
@@ -972,7 +1025,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         mListSwitch = pList;
     }
 
-    public void AddEntrances(string pStrInput, int pDirection)
+    public void AddNoEntrances(string pStrInput, int pDirection)
     {
         Dictionary<int, ISet<int>> lvEntrance = null;
         string[] lvVarEntrance;
@@ -984,11 +1037,11 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         {
             if (pDirection > 0)
             {
-                lvEntrance = mLeftEntrance;
+                lvEntrance = mLeftNoEntrance;
             }
             else if (pDirection < 0)
             {
-                lvEntrance = mRightEntrance;
+                lvEntrance = mRightNoEntrance;
             }
             else
             {
@@ -1017,7 +1070,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
                         if ((lvKey > 0) && (lvValue > 0))
                         {
-                            AddEntrance(lvKey, lvValue, pDirection);
+                            AddNoEntrance(lvKey, lvValue, pDirection);
                         }
                     }
                 }
@@ -1025,18 +1078,18 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         }
     }
 
-    public void AddEntrance(int pKey, int pValue, int pDirection)
+    public void AddNoEntrance(int pKey, int pValue, int pDirection)
     {
         ISet<int> lvDependenceTracks;
         Dictionary<int, ISet<int>> lvEntrance = null;
 
         if (pDirection > 0)
         {
-            lvEntrance = mLeftEntrance;
+            lvEntrance = mLeftNoEntrance;
         }
         else if (pDirection < 0)
         {
-            lvEntrance = mRightEntrance;
+            lvEntrance = mRightNoEntrance;
         }
         else
         {
@@ -1060,18 +1113,18 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         }
     }
 
-    public ISet<int> GetEntrance(int pKey, int pDirection)
+    public ISet<int> GetNoEntrance(int pKey, int pDirection)
     {
         ISet<int> lvRes = null;
         Dictionary<int, ISet<int>> lvEntrance = null;
 
         if (pDirection > 0)
         {
-            lvEntrance = mLeftEntrance;
+            lvEntrance = mLeftNoEntrance;
         }
         else if (pDirection < 0)
         {
-            lvEntrance = mRightEntrance;
+            lvEntrance = mRightNoEntrance;
         }
         else
         {
@@ -1320,8 +1373,8 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
             if(mIsSwitch)
             {
-                mLeftEntrance = new Dictionary<int, ISet<int>>();
-                mRightEntrance = new Dictionary<int, ISet<int>>();
+                mLeftNoEntrance = new Dictionary<int, ISet<int>>();
+                mRightNoEntrance = new Dictionary<int, ISet<int>>();
             }
         }
     }

@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RailWay>
+	<Switches>
+		<Switch name="Left" left_no_entrance="2-1" right_no_entrance="1-2" />
+		<Switch name="Right" left_no_entrance="1-2" right_no_entrance="2-1" />
+	</Switches>
+</RailWay>

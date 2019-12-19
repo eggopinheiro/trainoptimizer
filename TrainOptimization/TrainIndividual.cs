@@ -4609,7 +4609,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         HashSet<Int64> lvListGeneStopLocation = null;
         ISet<Gene> lvGenesStopLocationSet = null;
         ISet<int> lvDependencySet = null;
-        ISet<int> lvEntranceSet = null;
+        ISet<int> lvNoEntranceSet = null;
         Gene lvNewGene = null;
         Gene lvGene = null;
         Gene lvGen = null;
@@ -5175,7 +5175,35 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
             if(lvNextSwitch != null)
             {
-                lvEntranceSet = lvNextSwitch.GetEntrance(lvGene.Track, lvGene.Direction);
+                lvNoEntranceSet = lvNextSwitch.GetNoEntrance(lvGene.Track, lvGene.Direction);
+
+                if((lvNoEntranceSet != null) && (lvNoEntranceSet.Count > 0))
+                {
+                    foreach(int lvNoEntranceTrack in lvNoEntranceSet)
+                    {
+                        if(lvNextAvailable[lvNoEntranceTrack-1])
+                        {
+                            lvNextAvailable[lvNoEntranceTrack - 1] = false;
+                            lvNextCapacity--;
+                        }
+                    }
+
+                    if (lvNextCapacity == 0)
+                    {
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("lvNextCapacity == 0 após verificar lvNoEntranceSet !");
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
+
+                        return lvRes;
+                    }
+                }
             }
 
             lvCurrentTime = lvGene.HeadWayTime;
@@ -5436,6 +5464,22 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                                             lvNextAvailable[lvTrackNum - 1] = false;
                                             lvNextCapacity--;
                                         }
+                                    }
+
+                                    if (lvNextCapacity == 0)
+                                    {
+#if DEBUG
+                                        if (DebugLog.EnableDebug)
+                                        {
+                                            StringBuilder lvStrInfo = new StringBuilder();
+
+                                            lvStrInfo.Clear();
+                                            lvStrInfo.Append("lvNextCapacity == 0 após verificar lvDependencySet !");
+                                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                        }
+#endif
+
+                                        return lvRes;
                                     }
                                 }
                             }
