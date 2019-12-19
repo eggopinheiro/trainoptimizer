@@ -2417,6 +2417,13 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                     if ((lvInterdition.End_time >= pGene.Time) && (lvInterdition.End_time > lvRes[i]))
                     {
                         lvRes[i] = lvInterdition.End_time;
+
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            DebugLog.Logar("Atraso do trem " + pGene.TrainId + " Em " + pGene.SegmentInstance.Location + "." + pGene.SegmentInstance.SegmentValue + " com tempo anteior de " + pGene.Time + " foi para " + lvRes + " por lvLastDepTime interdicao na linha " + (i + 1), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
                     }
                 }
             }
@@ -5241,11 +5248,27 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 lvLastDepTime = DateTime.MaxValue;
                 for (int i = 0; i < lvArrLastDepTime.Length; i++)
                 {
-                    if((lvArrLastDepTime[i] < lvLastDepTime) && (lvArrLastDepTime[i] > lvGene.Time) && lvNextAvailable[i])
+                    if((lvArrLastDepTime[i] < lvLastDepTime) && lvNextAvailable[i])
                     {
                         lvDestTrack = i + 1;
                         lvLastDepTime = lvArrLastDepTime[i];
                     }
+
+#if DEBUG
+                    if (DebugLog.EnableDebug)
+                    {
+                        StringBuilder lvStrInfo = new StringBuilder();
+
+                        lvStrInfo.Clear();
+                        lvStrInfo.Append("lvArrLastDepTime[");
+                        lvStrInfo.Append(i);
+                        lvStrInfo.Append("] = ");
+                        lvStrInfo.Append(lvArrLastDepTime[i]);
+
+                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                    }
+#endif
+
                 }
             }
 
@@ -5255,8 +5278,6 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 StringBuilder lvStrInfo = new StringBuilder();
 
                 lvStrInfo.Clear();
-                lvStrInfo.Append("lvLastDepTime = ");
-                lvStrInfo.Append(lvLastDepTime);
                 lvStrInfo.Append("; lvCurrentTime = ");
                 lvStrInfo.Append(lvCurrentTime);
 
@@ -5264,7 +5285,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
             }
 #endif
 
-            if ((lvLastDepTime > lvGene.HeadWayTime) && (lvLastDepTime > lvCurrentTime))
+            if ((lvLastDepTime > lvGene.HeadWayTime) && (lvLastDepTime > lvCurrentTime) && (lvLastDepTime < DateTime.MaxValue))
             {
                 lvCurrentTime = lvLastDepTime;
 #if DEBUG
@@ -6822,32 +6843,35 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
         {
             foreach (Int64 lvTrainId in lvStopLocationEntry.Value)
             {
-                lvGene = mDicTrain[lvTrainId];
-                if (lvGene.Direction > 0)
+                if (mDicTrain.ContainsKey(lvTrainId))
                 {
-                    if (lvLastForward == null)
+                    lvGene = mDicTrain[lvTrainId];
+                    if (lvGene.Direction > 0)
                     {
-                        lvLastForward = lvGene;
-                    }
-                    else
-                    {
-                        if (lvGene.SegmentInstance.Start_coordinate > lvLastForward.SegmentInstance.Start_coordinate)
+                        if (lvLastForward == null)
                         {
                             lvLastForward = lvGene;
                         }
-                    }
-                }
-                else
-                {
-                    if (lvLastReverse == null)
-                    {
-                        lvLastReverse = lvGene;
+                        else
+                        {
+                            if (lvGene.SegmentInstance.Start_coordinate > lvLastForward.SegmentInstance.Start_coordinate)
+                            {
+                                lvLastForward = lvGene;
+                            }
+                        }
                     }
                     else
                     {
-                        if (lvGene.SegmentInstance.End_coordinate < lvLastReverse.SegmentInstance.End_coordinate)
+                        if (lvLastReverse == null)
                         {
                             lvLastReverse = lvGene;
+                        }
+                        else
+                        {
+                            if (lvGene.SegmentInstance.End_coordinate < lvLastReverse.SegmentInstance.End_coordinate)
+                            {
+                                lvLastReverse = lvGene;
+                            }
                         }
                     }
                 }
@@ -6881,26 +6905,29 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 DebugLog.Logar(" -------------------------------------- DumpStopLocation ----------------------------------- ", pUseDateInfo, TrainIndividual.IDLog);
                 foreach (Int64 lvTrainId in mStopLocationOcupation[pStopLocation.Location])
                 {
-                    lvGene = mDicTrain[lvTrainId];
-
-                    DebugLog.Logar("lvGene.TrainId = " + lvGene.TrainId, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.TrainName = " + lvGene.TrainName, pUseDateInfo, TrainIndividual.IDLog);
-                    if (lvGene.StopLocation != null)
+                    if (mDicTrain.ContainsKey(lvTrainId))
                     {
-                        DebugLog.Logar("lvGene.StopLocation.Location = " + lvGene.StopLocation.Location, pUseDateInfo, TrainIndividual.IDLog);
-                    }
-                    DebugLog.Logar("lvGene.Track = " + lvGene.Track, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.Location = " + lvGene.SegmentInstance.Location, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.UD = " + lvGene.SegmentInstance.SegmentValue, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.Coordinate = " + lvGene.Coordinate, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.Direction = " + lvGene.Direction, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.End = " + lvGene.End, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.Time = " + lvGene.Time, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.HeadWayTime = " + lvGene.HeadWayTime, pUseDateInfo, TrainIndividual.IDLog);
-                    DebugLog.Logar("lvGene.Speed = " + lvGene.Speed, pUseDateInfo, TrainIndividual.IDLog);
+                        lvGene = mDicTrain[lvTrainId];
 
-                    DebugLog.Logar(" ", pUseDateInfo, TrainIndividual.IDLog);
-                    lvCount++;
+                        DebugLog.Logar("lvGene.TrainId = " + lvGene.TrainId, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.TrainName = " + lvGene.TrainName, pUseDateInfo, TrainIndividual.IDLog);
+                        if (lvGene.StopLocation != null)
+                        {
+                            DebugLog.Logar("lvGene.StopLocation.Location = " + lvGene.StopLocation.Location, pUseDateInfo, TrainIndividual.IDLog);
+                        }
+                        DebugLog.Logar("lvGene.Track = " + lvGene.Track, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.Location = " + lvGene.SegmentInstance.Location, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.UD = " + lvGene.SegmentInstance.SegmentValue, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.Coordinate = " + lvGene.Coordinate, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.Direction = " + lvGene.Direction, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.End = " + lvGene.End, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.Time = " + lvGene.Time, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.HeadWayTime = " + lvGene.HeadWayTime, pUseDateInfo, TrainIndividual.IDLog);
+                        DebugLog.Logar("lvGene.Speed = " + lvGene.Speed, pUseDateInfo, TrainIndividual.IDLog);
+
+                        DebugLog.Logar(" ", pUseDateInfo, TrainIndividual.IDLog);
+                        lvCount++;
+                    }
                 }
                 DebugLog.Logar(" ", pUseDateInfo, TrainIndividual.IDLog);
                 DebugLog.Logar("Total = " + lvCount, pUseDateInfo, TrainIndividual.IDLog);
@@ -6915,24 +6942,27 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 {
                     foreach (Int64 lvTrainId in lvStopLocationEntry.Value)
                     {
-                        lvGene = mDicTrain[lvTrainId];
-
-                        DebugLog.Logar("lvGene.TrainId = " + lvGene.TrainId, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.TrainName = " + lvGene.TrainName, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        if (lvGene.StopLocation != null)
+                        if (mDicTrain.ContainsKey(lvTrainId))
                         {
-                            DebugLog.Logar("lvGene.StopLocation.Location = " + lvGene.StopLocation.Location, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        }
-                        DebugLog.Logar("lvGene.Track = " + lvGene.Track, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.Location = " + lvGene.SegmentInstance.Location, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.UD = " + lvGene.SegmentInstance.SegmentValue, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.Coordinate = " + lvGene.Coordinate, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.End = " + lvGene.End, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.Time = " + lvGene.Time, pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        DebugLog.Logar("lvGene.Speed = " + lvGene.Speed, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            lvGene = mDicTrain[lvTrainId];
 
-                        DebugLog.Logar(" ", pUseDateInfo, pIndet: TrainIndividual.IDLog);
-                        lvCount++;
+                            DebugLog.Logar("lvGene.TrainId = " + lvGene.TrainId, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.TrainName = " + lvGene.TrainName, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            if (lvGene.StopLocation != null)
+                            {
+                                DebugLog.Logar("lvGene.StopLocation.Location = " + lvGene.StopLocation.Location, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            }
+                            DebugLog.Logar("lvGene.Track = " + lvGene.Track, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.Location = " + lvGene.SegmentInstance.Location, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.UD = " + lvGene.SegmentInstance.SegmentValue, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.Coordinate = " + lvGene.Coordinate, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.End = " + lvGene.End, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.Time = " + lvGene.Time, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvGene.Speed = " + lvGene.Speed, pUseDateInfo, pIndet: TrainIndividual.IDLog);
+
+                            DebugLog.Logar(" ", pUseDateInfo, pIndet: TrainIndividual.IDLog);
+                            lvCount++;
+                        }
                     }
                 }
                 DebugLog.Logar(" ", pUseDateInfo, pIndet: TrainIndividual.IDLog);
