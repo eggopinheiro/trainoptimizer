@@ -27,6 +27,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
     private HashSet<Int64> mTrainFinished = null;
     private Dictionary<Int64, Gene[]> mTrainSequence = null;
     private List<int> mForeignIndividual = null;
+    private List<TrainMovement> mPlans = null;
     private int mUniqueId = -1;
     private static int mIDLog = 0;
     private List<TrainMovement> mList;
@@ -1847,7 +1848,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
     }
 */
 
-    private bool VerifyLoadedData(List<TrainMovement> ploadedList, List<TrainMovement> pMovList, List<TrainMovement> pPlanList, out HashSet<Int64> pLoadedSet, out HashSet<Int64> pPlanSet)
+    private bool VerifyLoadedData(List<TrainMovement> ploadedList, List<TrainMovement> pMovList, out HashSet<Int64> pLoadedSet, out HashSet<Int64> pPlanSet)
     {
         bool lvRes = false;
         pLoadedSet = new HashSet<Int64>();
@@ -1874,7 +1875,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 }
             }
 
-            foreach (TrainMovement lvTrainMov in pPlanList)
+            foreach (TrainMovement lvTrainMov in mPlans)
             {
                 if (!pLoadedSet.Contains(lvTrainMov.Last.TrainId))
                 {
@@ -1934,7 +1935,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
     {
         bool lvRes = false;
         List<TrainMovement> lvMovTurn = null;
-        List<TrainMovement> lvPlans = null;
         List<TrainMovement> lvLoadedData = null;
         HashSet<Int64> lvLoadedSet = null;
         HashSet<Int64> lvPlannedSet = null;
@@ -1958,12 +1958,12 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         try
         {
             lvMovTurn = new List<TrainMovement>(mDicTrain.Values);
-            lvPlans = new List<TrainMovement>(pPlanList);
+            mPlans = new List<TrainMovement>(pPlanList);
 
             if (pUniqueId != 0)
             {
                 lvLoadedData = UnSerialize(pUniqueId);
-                lvLoadedDataStatus = VerifyLoadedData(lvLoadedData, lvMovTurn, lvPlans, out lvLoadedSet, out lvPlannedSet);
+                lvLoadedDataStatus = VerifyLoadedData(lvLoadedData, lvMovTurn, out lvLoadedSet, out lvPlannedSet);
 
                 if ((lvLoadedData != null) && (lvLoadedData.Count > 0))
                 {
@@ -2010,14 +2010,14 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
             lvMovTurn = new List<TrainMovement>(mDicTrain.Values);
 
             /* Se não tem trem circulando coloca o primeiro trem planejado como circulando */
-            if ((mDicTrain.Count == 0) && (lvPlans.Count > 0))
+            if ((mDicTrain.Count == 0) && (mPlans.Count > 0))
             {
-                if (lvCurrentTime <= lvPlans[0].Last.DepartureTime)
+                if (lvCurrentTime <= mPlans[0].Last.DepartureTime)
                 {
-                    lvCurrentTime = lvPlans[0].Last.DepartureTime;
-                    mDicTrain.Add(lvPlans[0].Last.TrainId, lvPlans[0]);
-                    lvMovTurn.Add(lvPlans[0]);
-                    lvPlans.RemoveAt(0);
+                    lvCurrentTime = mPlans[0].Last.DepartureTime;
+                    mDicTrain.Add(mPlans[0].Last.TrainId, mPlans[0]);
+                    lvMovTurn.Add(mPlans[0]);
+                    mPlans.RemoveAt(0);
                 }
             }
 
@@ -2029,7 +2029,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 }
             }
 
-            while ((mDicTrain.Count > 0) || (lvPlans.Count > 0))
+            while ((mDicTrain.Count > 0) || (mPlans.Count > 0))
             {
                 if (lvLoadedDataStatus)
                 {
@@ -2074,35 +2074,24 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                             {
                                 if (lvPlannedSet.Contains(lvTrainMovement.Last.TrainId))
                                 {
-                                    lvPlannedSet.Remove(lvTrainMovement.Last.TrainId);
-
-                                    for(int i = 0; i < lvPlans.Count; i++)
+                                    if ((!mTrainSequence.ContainsKey(lvTrainMovement.Last.TrainId)) || (mTrainSequence[lvTrainMovement.Last.TrainId] == null) || (mTrainSequence[lvTrainMovement.Last.TrainId].Length <= (lvTrainMovement.Last.Sequence + 1)))
                                     {
-                                        lvPlanMovement = lvPlans[i];
-                                        if(lvPlanMovement.Last.TrainId == lvTrainMovement.Last.TrainId)
+                                        lvPlannedSet.Remove(lvTrainMovement.Last.TrainId);
+                                    }
+
+                                    for (int i = 0; i < mPlans.Count; i++)
+                                    {
+                                        lvPlanMovement = mPlans[i];
+                                        if (lvPlanMovement.Last.TrainId == lvTrainMovement.Last.TrainId)
                                         {
-                                            lvPlans.RemoveAt(i);
+                                            mPlans.RemoveAt(i);
                                             break;
                                         }
                                     }
                                 }
-                                else if((lvPlannedSet.Count == 0) && (lvPlans.Count > 0))
+                                else if((lvPlannedSet.Count == 0) && (mPlans.Count > 0))
                                 {
-                                    lvPlans = new List<TrainMovement>();
-                                }
-
-                                if(mTrainFinished.Contains(lvTrainMovement.Last.TrainId))
-                                {
-                                    if((mTrainSequence.ContainsKey(lvTrainMovement.Last.TrainId)) && (mTrainSequence[lvTrainMovement.Last.Track] != null) && (mTrainSequence[lvTrainMovement.Last.Track].Length > (lvTrainMovement.Last.Sequence + 1)))
-                                    {
-                                        lvNextPlanGene = lvTrainMovement.Last;
-                                        lvNextPlanGene.Sequence++;
-
-                                        mTrainFinished.Remove(lvTrainMovement.Last.TrainId);
-
-                                        lvPlannedSet.Add()
-                                        /* Adicionar a lista de planos */
-                                    }
+                                    mPlans = new List<TrainMovement>();
                                 }
                             }
                         }
@@ -2161,21 +2150,24 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
                                                 if (lvPlannedSet.Contains(lvTrainMovement.Last.TrainId))
                                                 {
-                                                    lvPlannedSet.Remove(lvTrainMovement.Last.TrainId);
-
-                                                    for (int ind = 0; ind < lvPlans.Count; ind++)
+                                                    if ((!mTrainSequence.ContainsKey(lvTrainMovement.Last.TrainId)) || (mTrainSequence[lvTrainMovement.Last.TrainId] == null) || (mTrainSequence[lvTrainMovement.Last.TrainId].Length <= (lvTrainMovement.Last.Sequence + 1)))
                                                     {
-                                                        lvPlanMovement = lvPlans[ind];
+                                                        lvPlannedSet.Remove(lvTrainMovement.Last.TrainId);
+                                                    }
+
+                                                    for (int ind = 0; ind < mPlans.Count; ind++)
+                                                    {
+                                                        lvPlanMovement = mPlans[ind];
                                                         if (lvPlanMovement.Last.TrainId == lvTrainMovement.Last.TrainId)
                                                         {
-                                                            lvPlans.RemoveAt(ind);
+                                                            mPlans.RemoveAt(ind);
                                                             break;
                                                         }
                                                     }
                                                 }
-                                                else if ((lvPlannedSet.Count == 0) && (lvPlans.Count > 0))
+                                                else if ((lvPlannedSet.Count == 0) && (mPlans.Count > 0))
                                                 {
-                                                    lvPlans = new List<TrainMovement>();
+                                                    mPlans = new List<TrainMovement>();
                                                 }
                                             }
                                             else
@@ -2262,11 +2254,11 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         }
                     }
 
-                    for (int i = 0; i < lvPlans.Count; i++)
+                    for (int i = 0; i < mPlans.Count; i++)
                     {
-                        if (!mDicTrain.ContainsKey(lvPlans[i].Last.TrainId))
+                        if (!mDicTrain.ContainsKey(mPlans[i].Last.TrainId))
                         {
-                            lvTrainMovRes = (TrainMovement)MoveTrain(lvPlans[i], lvCurrentTime);
+                            lvTrainMovRes = (TrainMovement)MoveTrain(mPlans[i], lvCurrentTime);
 
                             if (lvTrainMovRes != null)
                             {
@@ -2275,11 +2267,14 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                     lvCurrentTime = lvTrainMovRes.Last.Time;
                                 }
 
-                                if ((lvPlannedSet != null) && (lvPlannedSet.Contains(lvPlans[i].Last.TrainId)))
+                                if ((lvPlannedSet != null) && (lvPlannedSet.Contains(mPlans[i].Last.TrainId)))
                                 {
-                                    lvPlannedSet.Remove(lvPlans[i].Last.TrainId);
+                                    if ((!mTrainSequence.ContainsKey(lvTrainMovement.Last.TrainId)) || (mTrainSequence[lvTrainMovement.Last.TrainId] == null) || (mTrainSequence[lvTrainMovement.Last.TrainId].Length <= (lvTrainMovement.Last.Sequence + 1)))
+                                    {
+                                        lvPlannedSet.Remove(mPlans[i].Last.TrainId);
+                                    }
                                 }
-                                lvPlans.RemoveAt(i);
+                                mPlans.RemoveAt(i);
                                 //DebugLog.Logar("GenerateIndividual().VerifyConflict() = " + VerifyConflict(), pIndet: TrainIndividual.IDLog);
                             }
                             else
@@ -2289,7 +2284,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         }
                         else
                         {
-                            lvPlans.RemoveAt(i--);
+                            mPlans.RemoveAt(i--);
                         }
                     }
 
@@ -2335,13 +2330,13 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 }
 
                 /* Se não tem trem circulando coloca o primeiro trem planejado como circulando */
-                if ((mDicTrain.Count == 0) && (lvPlans.Count > 0))
+                if ((mDicTrain.Count == 0) && (mPlans.Count > 0))
                 {
-                    if (lvCurrentTime <= lvPlans[0].Last.DepartureTime)
+                    if (lvCurrentTime <= mPlans[0].Last.DepartureTime)
                     {
-                        lvCurrentTime = lvPlans[0].Last.DepartureTime;
-                        mDicTrain.Add(lvPlans[0].Last.TrainId, lvPlans[0]);
-                        lvPlans.RemoveAt(0);
+                        lvCurrentTime = mPlans[0].Last.DepartureTime;
+                        mDicTrain.Add(mPlans[0].Last.TrainId, mPlans[0]);
+                        mPlans.RemoveAt(0);
                     }
                 }
             }
@@ -7056,7 +7051,25 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         }
 
                         mDicTrain.Remove(lvNewGene.TrainId);
-                        mTrainFinished.Add(lvNewGene.TrainId);
+
+                        if ((mTrainSequence.ContainsKey(lvNewGene.TrainId)) && (mTrainSequence[lvNewGene.TrainId] != null) && (mTrainSequence[lvNewGene.TrainId].Length > (lvNewGene.Sequence + 1)))
+                        {
+                            if (mPlans != null)
+                            {
+                                lvGene = mTrainSequence[lvNewGene.TrainId][lvNewGene.Sequence+1];
+                                lvGene.Sequence++;
+                                lvGene.Track = lvNewGene.Track;
+
+                                lvCurrentTrainMovement = new TrainMovement();
+                                lvCurrentTrainMovement.Add(lvGene);
+
+                                mPlans.Insert(0, lvCurrentTrainMovement);
+                            }
+                        }
+                        else
+                        {
+                            mTrainFinished.Add(lvNewGene.TrainId);
+                        }
 
                         if (lvRes[0].StopLocation != null)
                         { 
