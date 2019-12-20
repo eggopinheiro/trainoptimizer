@@ -603,11 +603,24 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                     {
                         if (lvSegment.IsSwitch)
                         {
-                            lvStopLocation.Start_coordinate = lvSegment.End_coordinate;
+                            if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
+                            {
+                                lvSegment.IsSwitch = false;
+                                lvSegment.OwnerStopLocation = lvStopLocation;
+                            }
+                            else
+                            {
+                                lvStopLocation.Start_coordinate = lvSegment.End_coordinate;
+                            }
                         }
                         else
                         {
                             lvStopLocation.LeftSegment[lvSegment.Track - 1] = lvSegment;
+
+                            if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
+                            {
+                                lvSegment.OwnerStopLocation = lvStopLocation;
+                            }
                         }
                     }
                 }
@@ -618,7 +631,15 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                     {
                         if (lvSegment.IsSwitch)
                         {
-                            lvStopLocation.End_coordinate = lvSegment.Start_coordinate;
+                            if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
+                            {
+                                lvSegment.IsSwitch = false;
+                                lvSegment.OwnerStopLocation = lvStopLocation;
+                            }
+                            else
+                            {
+                                lvStopLocation.End_coordinate = lvSegment.Start_coordinate;
+                            }
 
                             if(i >= lvStopLocation.Capacity)
                             {
@@ -635,6 +656,11 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                         else
                         {
                             lvStopLocation.RightSegment[lvSegment.Track - 1] = lvSegment;
+
+                            if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
+                            {
+                                lvSegment.OwnerStopLocation = lvStopLocation;
+                            }
                         }
                     }
                 }
@@ -644,6 +670,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                     for (int indsw = i; indsw >= 0; indsw--)
                     {
                         lvSegment = lvSegments[indsw];
+
                         if ((lvSegment.IsSwitch) && ((lvSegment.End_coordinate <= lvStopLocation.Start_coordinate) || (lvSegment.Start_coordinate == lvStopLocation.Start_coordinate)))
                         {
                             lvStopLocation.PrevSwitch = lvSegment;
@@ -657,6 +684,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                     for (int indsw = i; indsw < lvSegments.Count; indsw++)
                     {
                         lvSegment = lvSegments[indsw];
+
                         if ((lvSegment.IsSwitch) && ((lvSegment.Start_coordinate >= lvStopLocation.End_coordinate) || (lvSegment.End_coordinate == lvStopLocation.End_coordinate)))
                         {
                             lvStopLocation.NextSwitch = lvSegment;
@@ -698,6 +726,8 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
             }
 #endif
         }
+
+        Segment.LoadNeighborSwitch();
     }
 
     public static void LoadList(string pStrFile)

@@ -199,10 +199,6 @@ namespace TrainOptimization
             int lvIndex = -1;
             int lvValue = -1;
             string lvStrMode = "";
-            string lvStrDependency;
-            string[] lvVarDependency;
-            string[] lvVarElements;
-            int lvKey;
             DateTime lvCurrTime = DateTime.MaxValue;
 
             lvStrMode = ConfigurationManager.AppSettings["OPT_MODE"];
@@ -583,7 +579,6 @@ namespace TrainOptimization
 
             Segment.SetList(lvSegments);
             Segment.SetListSwitch(lvSwitches);
-            Segment.LoadNeighborSwitch();
             StopLocation.LoadList(pStrFile);
             Segment.LoadStopLocations(StopLocation.GetList());
 
@@ -1109,7 +1104,7 @@ namespace TrainOptimization
                 DebugLog.EnableDebug = lvLogEnable;
                 */
 
-                lvFitness = new RailRoadFitness(TrainIndividual.VMA, true);
+                lvFitness = new RailRoadFitness(TrainIndividual.VMA);
                 //RailRoadFitness.ResetFitnessCall();
                 ((RailRoadFitness)lvFitness).Population = null;
                 Population.LoadPriority(mTrainPriority);
@@ -1117,6 +1112,7 @@ namespace TrainOptimization
                 ((RailRoadFitness)lvFitness).Population = lvPopulation;
                 lvPopulation.NicheDistance = lvNicheDistance;
 
+#if !DEBUG
                 ElapsedTimeDataAccess.Delete(lvPopulation.UniqueId);
 
                 lvGeneIndividual = null;
@@ -1133,6 +1129,7 @@ namespace TrainOptimization
                 {
                     ElapsedTimeDataAccess.Insert(lvPopulation.UniqueId, lvFitness.Type, lvPopulation.Count, 0.0);
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -1217,8 +1214,8 @@ namespace TrainOptimization
                         lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
 #else
                         lvGeneIndividual.Save();
-#endif
                         ElapsedTimeDataAccess.Update(lvPopulation.UniqueId, DateTime.Now, lvFitness.FitnessCallNum, lvGeneIndividual.Fitness, lvPopulation.CurrentGeneration, lvPopulation.Count, lvPopulation.HillClimbingCallReg);
+#endif
 
                         lvPopulation.SaveBestIndividuals();
 

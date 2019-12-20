@@ -14,13 +14,11 @@ public class RailRoadFitness : IFitness<Gene>
     private string mStrHeaderResult = "";
     private int mFunctionCallReg = 0;
     private string mType = "";
-    private bool mSaveDBResult = false;
     private Population mPopulation = null;
 
-    public RailRoadFitness(double pVMA, bool pSaveDBResult = false, string pStrType = "", int pFunctionCallReg = 0)
+    public RailRoadFitness(double pVMA, string pStrType = "", int pFunctionCallReg = 0)
 	{
         mVMA = pVMA;
-        mSaveDBResult = pSaveDBResult;
 
         if (pStrType.Trim().Length == 0)
         {
@@ -33,6 +31,10 @@ public class RailRoadFitness : IFitness<Gene>
             {
                 mFunctionCallReg = 0;
             }
+        }
+        else
+        {
+            mFunctionCallReg = mFunctionCallReg;
         }
     }
 
@@ -65,14 +67,12 @@ public class RailRoadFitness : IFitness<Gene>
                     mStrHeaderResult += "|Call Num. " + FitnessCallNum;
                     mStrLineResult += "|" + mPopulation.GetBestIndividual().GetFitness();
                 }
-#endif
-                if (mSaveDBResult)
+#else
+                lock(this)
                 {
-                    lock(this)
-                    {
-                        ElapsedTimeDataAccess.Update(mPopulation.UniqueId, DateTime.MinValue, mFitnessCallNum, mPopulation.GetBestIndividual().GetFitness(), mPopulation.CurrentGeneration, mPopulation.Count, mPopulation.HillClimbingCallReg);
-                    }
+                    ElapsedTimeDataAccess.Update(mPopulation.UniqueId, DateTime.MinValue, mFitnessCallNum, mPopulation.GetBestIndividual().GetFitness(), mPopulation.CurrentGeneration, mPopulation.Count, mPopulation.HillClimbingCallReg);
                 }
+#endif
             }
         }
 

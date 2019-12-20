@@ -494,8 +494,10 @@ public class Population
             DebugLog.Logar(" ", pIndet: TrainIndividual.IDLog);
         }
 
+        /*
         TrainIndividual lvGeneIndividual = (TrainIndividual)GetBestIndividual();
         lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
+        */
 #endif
 
         if (mIndividuals.Count > 0)
@@ -1625,7 +1627,8 @@ public class Population
                     lvGene.State = Gene.STATE.IN;
                     lvCreationtime = ((row["creation_tm"] == DBNull.Value) ? DateTime.MinValue : DateTime.Parse(row["creation_tm"].ToString()));
 
-                    lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
+                    //lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
+                    lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
 
                     if (lvGene.DepartureTime.AddYears(1) < lvCreationtime)
                     {
@@ -1662,16 +1665,16 @@ public class Population
                         }
                     }
 
-                    lvCurrentStopSegment = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
-                    lvGene.StopLocation = lvCurrentStopSegment;
+                    //lvCurrentStopSegment = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+                    lvGene.StopLocation = lvGene.SegmentInstance.OwnerStopLocation;
 
-                    if (lvCurrentStopSegment == null)
+                    if (lvGene.StopLocation == null)
                     {
                         lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate, lvGene.Direction);
                     }
                     else
                     {
-                        lvNextStopLocation = lvCurrentStopSegment.GetNextStopSegment(lvGene.Direction);
+                        lvNextStopLocation = lvGene.StopLocation.GetNextStopSegment(lvGene.Direction);
                     }
 
                     lvStartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
@@ -1693,7 +1696,7 @@ public class Population
                     {
                         continue;
                     }
-                    else if ((lvCurrentStopSegment == lvEndStopLocation) && (lvCurrentStopSegment != null))
+                    else if ((lvGene.StopLocation == lvEndStopLocation) && (lvGene.StopLocation != null))
                     {
                         continue;
                     }
@@ -3035,6 +3038,14 @@ public class Population
                 catch (Exception ex)
                 {
                     DebugLog.Logar("mClustersCenter.Count => " + mClustersCenter.Count, false, pIndet: TrainIndividual.IDLog);
+
+                    DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
+                    foreach (IIndividual<Gene> lvIndv in mClustersCenter)
+                    {
+                        DebugLog.Logar("lvIndv " + lvIndv.GetUniqueId() + " = " + lvIndv.Fitness, false, pIndet: TrainIndividual.IDLog);
+                    }
+                    DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
+
                     DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
                 }
 

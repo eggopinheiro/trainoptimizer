@@ -22,6 +22,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 	protected int lvend_coordinate;
     protected StopLocation mPrevStopLocation = null;
     protected StopLocation mNextStopLocation = null;
+    protected StopLocation mCurrentStopLocation = null;
     protected Segment mPrevSwitch = null;
     protected Segment mNextSwitch = null;
     protected Int16 mTrack = 0;
@@ -55,11 +56,22 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
     {
         int lvRes = 0;
 
-        if (pOther == null) return 1;
+        if (pOther == null) return -1;
 
-        if (pOther.Start_coordinate >= this.Start_coordinate && pOther.End_coordinate <= this.End_coordinate)
+        if ((pOther.Start_coordinate >= this.Start_coordinate) && (pOther.End_coordinate <= this.End_coordinate))
         {
-            lvRes = 0;
+            if (this.Track > pOther.Track)
+            {
+                lvRes = 1;
+            }
+            else if (this.Track < pOther.Track)
+            {
+                lvRes = -1;
+            }
+            else
+            {
+                lvRes = 0;
+            }
         }
         else if (this.Start_coordinate >= pOther.Start_coordinate)
         {
@@ -406,6 +418,92 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         }
 
         return lvResSegment;
+    }
+
+    public static Segment GetSegmentAt(int pCoordinate, int pLine, int pStart=0, int pEnd=Int32.MaxValue)
+    {
+        Segment lvRes = null;
+        Segment lvSegment = null;
+        Segment lvAuxSegment = null;
+        int lvMiddle;
+        int lvIndex = -1;
+
+        if (pStart > pEnd) return lvRes;
+
+        if(pEnd == Int32.MaxValue)
+        {
+            pEnd = mListSegment.Count - 1;
+        }
+
+        lvMiddle = (pStart + pEnd) / 2;
+        lvSegment = mListSegment[lvMiddle];
+
+        if((pCoordinate >= lvSegment.Start_coordinate) && (pCoordinate <= lvSegment.End_coordinate))
+        {
+            if(pLine == lvSegment.Track)
+            {
+                lvRes = lvSegment;
+            }
+            else 
+            {
+                lvAuxSegment = lvSegment;
+
+                if (lvSegment.Track < pLine)
+                {
+                    lvIndex = lvMiddle + 1;
+                }
+                else if(lvSegment.Track > pLine)
+                {
+                    lvIndex = lvMiddle - 1;
+                }
+
+                if (lvIndex <= pEnd)
+                {
+                    lvSegment = mListSegment[lvIndex];
+
+                    while (lvSegment.Track != pLine)
+                    {
+                        if (lvSegment.Track < pLine)
+                        {
+                            lvIndex++;
+                        }
+                        else if (lvSegment.Track > pLine)
+                        {
+                            lvIndex--;
+                        }
+
+                        if (lvIndex > pEnd)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            lvSegment = mListSegment[lvIndex];
+
+                            if((lvSegment.Start_coordinate != lvAuxSegment.Start_coordinate) && (lvSegment.Start_coordinate != lvAuxSegment.End_coordinate) && (lvSegment.End_coordinate != lvAuxSegment.Start_coordinate) && (lvSegment.End_coordinate != lvAuxSegment.End_coordinate))
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    if((lvSegment.Track == pLine) && ((lvSegment.Start_coordinate == lvAuxSegment.Start_coordinate) || (lvSegment.Start_coordinate == lvAuxSegment.End_coordinate) || (lvSegment.End_coordinate == lvAuxSegment.Start_coordinate) || (lvSegment.End_coordinate == lvAuxSegment.End_coordinate)))
+                    {
+                        lvRes = lvSegment;
+                    }
+                }
+            }
+        }
+        else if(pCoordinate > lvSegment.End_coordinate)
+        {
+            lvRes = GetSegmentAt(pCoordinate, pLine, lvMiddle + 1, pEnd);
+        }
+        else if(pCoordinate < lvSegment.Start_coordinate)
+        {
+            lvRes = GetSegmentAt(pCoordinate, pLine, pStart, lvMiddle - 1);
+        }
+
+        return lvRes;
     }
 
     public static Segment GetCurrentSegment(int pCoordinate, int pDirection, int pLine, out int pSegIndex)
@@ -790,6 +888,16 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
                     lvStrInfo.Clear();
                     lvStrInfo.Append("lvSegment => " + lvSegment + "\n");
+
+                    if (lvSegment.OwnerStopLocation == null)
+                    {
+                        lvStrInfo.Append("lvSegment.OwnerStopLocation => null \n");
+                    }
+                    else
+                    {
+                        lvStrInfo.Append("lvSegment.OwnerStopLocation => " + lvSegment.OwnerStopLocation + "\n");
+                    }
+
                     if (lvSegment.PrevStopLocation == null)
                     {
                         lvStrInfo.Append("lvSegment.PrevStopLocation => null \n");
@@ -819,9 +927,20 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
     {
         int lvIndPrev = 0;
         int lvIndNext = 0;
+        Segment lvSegm;
 
         if ((mListSegment != null) && (mListSwitch != null))
         {
+            for(int i = mListSwitch.Count-1; i>=0; i--)
+            {
+                lvSegm = mListSwitch[i];
+
+                if (!lvSegm.IsSwitch)
+                {
+                    mListSwitch.RemoveAt(i);
+                }
+            }
+
             foreach (Segment lvSegment in mListSegment)
             {
                 if (lvSegment.Start_coordinate < mListSwitch[lvIndNext].Start_coordinate)
@@ -907,7 +1026,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
         try
         {
-            XmlReader lvXmlReader = XmlReader.Create(mSwitchParameterFile);
+            XmlReader lvXmlReader = XmlReader.Create(ConfigurationManager.AppSettings["LOG_PATH"] + mSwitchParameterFile);
 
             while (lvXmlReader.Read())
             {
@@ -996,13 +1115,15 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         {
             DebugLog.Save("Erro => Nao foi possível carregar os segmentos da ferrovia !!!");
         }
+        else if(mListSegment.Count > 1)
+        {
+            mListSegment.Sort();
+        }
 
 #if DEBUG
         DebugLog.Logar("LoadList.mListSegment.Count = " + mListSegment.Count, false);
         DebugLog.Logar("LoadList.mListSwitch.Count = " + mListSwitch.Count, false);
 #endif
-
-        LoadNeighborSwitch();
     }
 
 	public static List<Segment> GetList()
@@ -1405,6 +1526,19 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         set
         {
             mNextStopLocation = value;
+        }
+    }
+
+    public StopLocation OwnerStopLocation
+    {
+        get
+        {
+            return mCurrentStopLocation;
+        }
+
+        set
+        {
+            mCurrentStopLocation = value;
         }
     }
 
