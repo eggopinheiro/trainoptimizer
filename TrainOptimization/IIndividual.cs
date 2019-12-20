@@ -12,12 +12,12 @@ public interface IIndividual<T> : IComparable<IIndividual<T>>, IEnumerable<Train
     double RefFitnessValue { get; set; }
     double GBest { get; set; }
     T this[int index] { get; set; }
-    bool GenerateIndividual(IEnumerable<T> pPlanList, int pUniqueId, bool pAllowDeadLockIndividual);
+    bool GenerateIndividual(IEnumerable<T> pPlanList, int pUniqueId, bool pAllowDeadLockIndividual = false, bool pSortedByTime = false);
     double GetFitness();
     bool IsValid();
     int GetUniqueId();
     int GetDistanceFrom(IIndividual<T> pIndividual);
-    IEnumerable<Gene> MoveTrain(T pTrainMov, DateTime pInitialTime = default(DateTime), bool pUpdate = true, DateTime pForcedDepTime = default(DateTime), bool pNoStopBeforeSwitch = false);
+    IEnumerable<Gene> MoveTrain(T pTrainMov, out Gene[] pUsedHeadway, DateTime pInitialTime = default(DateTime), bool pUpdate = true, DateTime pForcedDepTime = default(DateTime), bool pNoStopBeforeSwitch = false);
     IEnumerable<T> GetElements(int pStartIndex, int pEndIndex);
     void AddElements(IEnumerable<T> pElemetns, bool pNeedUpdate = true);
     void AddElementRef(T pElement);

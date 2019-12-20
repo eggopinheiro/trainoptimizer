@@ -568,7 +568,584 @@ public class TrainDataAccess
 		return ds;
 	}
 
-	[DataObjectMethod(DataObjectMethodType.Select)]
+    public static DataSet GetLocosOnStopLocation(double ptrain_id = -999999999999, string pname = "", string ptype = "", DateTime pcreation_tm = default(DateTime), DateTime pdeparture_time = default(DateTime), DateTime parrival_time = default(DateTime), Int16 pdirection = -32768, string ppriority = "", string pstatus = "", int pdeparture_coordinate = -2147483648, int parrival_coordinate = -2147483648, double plotes = -999999999999, Int16 pisvalid = -32768, int plast_coordinate = -2147483648, DateTime plast_info_updated = default(DateTime), string ppmt_id = "", string pOS = "", double pplan_id = -999999999999, string pOSSGF = "", string plast_track = "", DateTime phist = default(DateTime), Int16 pcmd_loco_id = -32768, Int16 pusr_cmd_loco_id = -32768, Int16 pplan_id_lock = -32768, string poid = "", int punilogcurrcoord = -2147483648, DateTime punilogcurinfodate = default(DateTime), string punilogcurseg = "", double ploco_code = -999999999999, string pStrSortField = "")
+    {
+        string lvSql = "";
+        string lvSqlWhere = "";
+        DataSet ds = new DataSet();
+
+        /*
+            1 - Select pmt_id from tbtraincompo and join tbtrain
+            2 - If OS Match build the list
+            3 - Else do other query joining compokey with cmd_loco_id and usr_cmd_loco_id and add to list
+        */
+		
+        lvSql = "select tbtrain.train_id, name, creation_tm, departure_time, tbtrain.OS, tbtrain.OSSGF, tbtraincompo.pmt_id, compokey, tbtraincompo.pos, hist from tbtrain right join tbtraincompo on (tbtrain.OS = tbtraincompo.os or tbtrain.OSSGF = tbtraincompo.os) where (tbtraincompo.tipo = 'COMPOLOCOS') And (tbtraincompo.pmt_id like 'H%') And (tbtraincompo.date_hist between '2018/07/10 23:00:00' and now()) limit 20";
+
+        //lvSql = "select tbtrain.train_id, tbtrain.name, tbtrain.type, tbtrain.creation_tm, tbtrain.departure_time, tbtrain.arrival_time, tbtrain.direction, tbtrain.priority, tbtrain.status, tbtrain.departure_coordinate, tbtrain.arrival_coordinate, tbtrain.lotes, tbtrain.isvalid, tbtrain.last_coordinate, tbtrain.last_info_updated, tbtrain.pmt_id, tbtrain.OS, tbtrain.plan_id, tbtrain.OSSGF, tbtrain.last_track, tbtrain.hist, tbtrain.cmd_loco_id, tbtrain.usr_cmd_loco_id, tbtrain.plan_id_lock, tbtrain.oid, tbtrain.unilogcurrcoord, tbtrain.unilogcurinfodate, tbtrain.unilogcurseg, tbtrain.loco_code From tbtrain";
+
+        if (ptrain_id > ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.train_id=@train_id";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.train_id=@train_id";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(pname))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.name like @name";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.name like @name";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(ptype))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.type like @type";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.type like @type";
+            }
+        }
+
+        if (pcreation_tm > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.creation_tm=@creation_tm";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.creation_tm=@creation_tm";
+            }
+        }
+
+        if (pdeparture_time > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.departure_time=@departure_time";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.departure_time=@departure_time";
+            }
+        }
+
+        if (parrival_time > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.arrival_time=@arrival_time";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.arrival_time=@arrival_time";
+            }
+        }
+
+        if (pdirection > Int16.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.direction=@direction";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.direction=@direction";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(ppriority))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.priority like @priority";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.priority like @priority";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(pstatus))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.status like @status";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.status like @status";
+            }
+        }
+
+        if (pdeparture_coordinate > Int32.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.departure_coordinate=@departure_coordinate";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.departure_coordinate=@departure_coordinate";
+            }
+        }
+
+        if (parrival_coordinate > Int32.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.arrival_coordinate=@arrival_coordinate";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.arrival_coordinate=@arrival_coordinate";
+            }
+        }
+
+        if (plotes > ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.lotes=@lotes";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.lotes=@lotes";
+            }
+        }
+
+        if (pisvalid > Int16.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.isvalid=@isvalid";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.isvalid=@isvalid";
+            }
+        }
+
+        if (plast_coordinate > Int32.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.last_coordinate=@last_coordinate";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.last_coordinate=@last_coordinate";
+            }
+        }
+
+        if (plast_info_updated > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.last_info_updated=@last_info_updated";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.last_info_updated=@last_info_updated";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(ppmt_id))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.pmt_id like @pmt_id";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.pmt_id like @pmt_id";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(pOS))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.OS like @OS";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.OS like @OS";
+            }
+        }
+
+        if (pplan_id > ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.plan_id=@plan_id";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.plan_id=@plan_id";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(pOSSGF))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.OSSGF like @OSSGF";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.OSSGF like @OSSGF";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(plast_track))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.last_track like @last_track";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.last_track like @last_track";
+            }
+        }
+
+        if (phist > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.hist=@hist";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.hist=@hist";
+            }
+        }
+
+        if (pcmd_loco_id > Int16.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.cmd_loco_id=@cmd_loco_id";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.cmd_loco_id=@cmd_loco_id";
+            }
+        }
+
+        if (pusr_cmd_loco_id > Int16.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.usr_cmd_loco_id=@usr_cmd_loco_id";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.usr_cmd_loco_id=@usr_cmd_loco_id";
+            }
+        }
+
+        if (pplan_id_lock > Int16.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.plan_id_lock=@plan_id_lock";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.plan_id_lock=@plan_id_lock";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(poid))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.oid like @oid";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.oid like @oid";
+            }
+        }
+
+        if (punilogcurrcoord > Int32.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.unilogcurrcoord=@unilogcurrcoord";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.unilogcurrcoord=@unilogcurrcoord";
+            }
+        }
+
+        if (punilogcurinfodate > DateTime.MinValue)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.unilogcurinfodate=@unilogcurinfodate";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.unilogcurinfodate=@unilogcurinfodate";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(punilogcurseg))
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.unilogcurseg like @unilogcurseg";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.unilogcurseg like @unilogcurseg";
+            }
+        }
+
+        if (ploco_code > ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            if (lvSqlWhere.Length == 0)
+            {
+                lvSqlWhere += "tbtrain.loco_code=@loco_code";
+            }
+            else
+            {
+                lvSqlWhere += " And tbtrain.loco_code=@loco_code";
+            }
+        }
+
+        if (!string.IsNullOrEmpty(lvSqlWhere))
+        {
+            lvSql += " where " + lvSqlWhere;
+        }
+
+        if (!string.IsNullOrEmpty(pStrSortField))
+        {
+            lvSql += " order by " + pStrSortField;
+        }
+
+        MySqlConnection conn = ConnectionManager.GetObjConnection();
+        MySqlCommand cmd = new MySqlCommand(lvSql, conn);
+
+        if (ptrain_id == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@train_id", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@train_id", MySqlDbType.Double).Value = ptrain_id;
+        }
+
+        cmd.Parameters.Add("@name", MySqlDbType.String).Value = "%" + pname + "%";
+
+        cmd.Parameters.Add("@type", MySqlDbType.String).Value = "%" + ptype + "%";
+
+        if (pcreation_tm == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@creation_tm", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@creation_tm", MySqlDbType.DateTime).Value = pcreation_tm.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        if (pdeparture_time == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@departure_time", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@departure_time", MySqlDbType.DateTime).Value = pdeparture_time.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        if (parrival_time == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@arrival_time", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@arrival_time", MySqlDbType.DateTime).Value = parrival_time.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        if (pdirection == Int16.MinValue)
+        {
+            cmd.Parameters.Add("@direction", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@direction", MySqlDbType.Int16).Value = pdirection;
+        }
+
+        cmd.Parameters.Add("@priority", MySqlDbType.String).Value = "%" + ppriority + "%";
+
+        cmd.Parameters.Add("@status", MySqlDbType.String).Value = "%" + pstatus + "%";
+
+        if (pdeparture_coordinate == Int32.MinValue)
+        {
+            cmd.Parameters.Add("@departure_coordinate", MySqlDbType.Int32).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@departure_coordinate", MySqlDbType.Int32).Value = pdeparture_coordinate;
+        }
+
+        if (parrival_coordinate == Int32.MinValue)
+        {
+            cmd.Parameters.Add("@arrival_coordinate", MySqlDbType.Int32).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@arrival_coordinate", MySqlDbType.Int32).Value = parrival_coordinate;
+        }
+
+        if (plotes == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@lotes", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@lotes", MySqlDbType.Double).Value = plotes;
+        }
+
+        if (pisvalid == Int16.MinValue)
+        {
+            cmd.Parameters.Add("@isvalid", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@isvalid", MySqlDbType.Int16).Value = pisvalid;
+        }
+
+        if (plast_coordinate == Int32.MinValue)
+        {
+            cmd.Parameters.Add("@last_coordinate", MySqlDbType.Int32).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@last_coordinate", MySqlDbType.Int32).Value = plast_coordinate;
+        }
+
+        if (plast_info_updated == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@last_info_updated", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@last_info_updated", MySqlDbType.DateTime).Value = plast_info_updated.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        cmd.Parameters.Add("@pmt_id", MySqlDbType.String).Value = "%" + ppmt_id + "%";
+
+        cmd.Parameters.Add("@OS", MySqlDbType.String).Value = "%" + pOS + "%";
+
+        if (pplan_id == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@plan_id", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@plan_id", MySqlDbType.Double).Value = pplan_id;
+        }
+
+        cmd.Parameters.Add("@OSSGF", MySqlDbType.String).Value = "%" + pOSSGF + "%";
+
+        cmd.Parameters.Add("@last_track", MySqlDbType.String).Value = "%" + plast_track + "%";
+
+        if (phist == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@hist", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@hist", MySqlDbType.DateTime).Value = phist.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        if (pcmd_loco_id == Int16.MinValue)
+        {
+            cmd.Parameters.Add("@cmd_loco_id", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@cmd_loco_id", MySqlDbType.Int16).Value = pcmd_loco_id;
+        }
+
+        if (pusr_cmd_loco_id == Int16.MinValue)
+        {
+            cmd.Parameters.Add("@usr_cmd_loco_id", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@usr_cmd_loco_id", MySqlDbType.Int16).Value = pusr_cmd_loco_id;
+        }
+
+        if (pplan_id_lock == Int16.MinValue)
+        {
+            cmd.Parameters.Add("@plan_id_lock", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@plan_id_lock", MySqlDbType.Int16).Value = pplan_id_lock;
+        }
+
+        cmd.Parameters.Add("@oid", MySqlDbType.String).Value = "%" + poid + "%";
+
+        if (punilogcurrcoord == Int32.MinValue)
+        {
+            cmd.Parameters.Add("@unilogcurrcoord", MySqlDbType.Int32).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@unilogcurrcoord", MySqlDbType.Int32).Value = punilogcurrcoord;
+        }
+
+        if (punilogcurinfodate == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@unilogcurinfodate", MySqlDbType.DateTime).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@unilogcurinfodate", MySqlDbType.DateTime).Value = punilogcurinfodate.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        cmd.Parameters.Add("@unilogcurseg", MySqlDbType.String).Value = "%" + punilogcurseg + "%";
+
+        if (ploco_code == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@loco_code", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@loco_code", MySqlDbType.Double).Value = ploco_code;
+        }
+
+        cmd.CommandType = CommandType.Text;
+
+        conn.Close();
+
+        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+        adapter.Fill(ds, "tbtrain");
+        return ds;
+    }
+
+    [DataObjectMethod(DataObjectMethodType.Select)]
 	public static DataSet GetData(double ptrain_id = -999999999999, string pname = "", string ptype = "", DateTime pcreation_tm = default(DateTime), DateTime pdeparture_time = default(DateTime), DateTime parrival_time = default(DateTime), Int16 pdirection = -32768, string ppriority = "", string pstatus = "", int pdeparture_coordinate = -2147483648, int parrival_coordinate = -2147483648, double plotes = -999999999999, Int16 pisvalid = -32768, int plast_coordinate = -2147483648, DateTime plast_info_updated = default(DateTime), string ppmt_id = "", string pOS = "", double pplan_id = -999999999999, string pOSSGF = "", string plast_track = "", DateTime phist = default(DateTime), Int16 pcmd_loco_id = -32768, Int16 pusr_cmd_loco_id = -32768, Int16 pplan_id_lock = -32768, string poid = "", int punilogcurrcoord = -2147483648, DateTime punilogcurinfodate = default(DateTime), string punilogcurseg = "", double ploco_code = -999999999999, string pStrSortField = "")
 	{
 		string lvSql = "";

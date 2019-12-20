@@ -813,5 +813,27 @@ public class Interdicao : IComparable<Interdicao>, IEquatable<Interdicao>
             mTrack = value;
         }
     }
+
+    public override string ToString()
+    {
+        StringBuilder lvRes = new StringBuilder();
+
+        lvRes.Append("Id: ");
+        lvRes.Append(lvti_id);
+        lvRes.Append(", Start_Pos: ");
+        lvRes.Append(lvstart_pos);
+        lvRes.Append(", End_Pos: ");
+        lvRes.Append(lvend_pos);
+        lvRes.Append(", Start_Time: ");
+        lvRes.Append(lvstart_time);
+        lvRes.Append(", End_Time: ");
+        lvRes.Append(lvend_time);
+        lvRes.Append(", UD: ");
+        lvRes.Append(lvss_name);
+        lvRes.Append(", Track: ");
+        lvRes.Append(mTrack);
+
+        return lvRes.ToString();
+    }
 }
 

@@ -761,12 +761,13 @@ namespace TrainOptimization
                                 DebugLog.Logar("Generation = " + lvIndex);
                                 DebugLog.EnableDebug = lvLogEnable;
                                 lvRes = lvPopulation.NextGeneration();
+
                                 //lvPopulation.dump(lvPopulation.GetBestIndividual());
 
                                 //lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
                                 //lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
 
-                                if (!lvRes)
+                                if (!lvRes || (lvPopulation.Count < lvPopulationSize))
                                 {
                                     break;
                                 }
@@ -928,6 +929,7 @@ namespace TrainOptimization
             int lvMaxDeadLockError = 0;
             int lvMaxParallelThreads = 1;
             int lvIndex;
+            int lvCurrentObjectiveCalled = 0;
             double lvNicheDistance = 0.0;
             double lvThreshold;
             bool lvRes = false;
@@ -1044,6 +1046,8 @@ namespace TrainOptimization
                 DebugLog.EnableDebug = lvLogEnable;
                 */
 
+                //DebugLog.Logar("Criando Population !", false);
+
                 lvFitness = new RailRoadFitness(TrainIndividual.VMA);
                 //RailRoadFitness.ResetFitnessCall();
                 ((RailRoadFitness)lvFitness).Population = null;
@@ -1091,6 +1095,7 @@ namespace TrainOptimization
 
                 if (lvPopulation.UseMaxObjectiveFunctionCall())
                 {
+                    lvCurrentObjectiveCalled = lvFitness.FitnessCallNum;
                     lvIndex = -1;
                     while (!lvPopulation.HasMaxObjectiveFunctionCallReached())
                     {
@@ -1109,11 +1114,18 @@ namespace TrainOptimization
 
                         //lvPopulation.dump(lvPopulation.GetBestIndividual());
 
-                        if (!lvRes)
+                        if (!lvRes || (lvPopulation.Count < lvPopulationSize) || (lvFitness.FitnessCallNum <= lvCurrentObjectiveCalled))
                         {
-                            DebugLog.Logar("Processo abortado na execucao da geracao !!!", false, pIndet: TrainIndividual.IDLog);
-                            DebugLog.Save("Processo abortado na execucao da geracao !!!");
+#if DEBUG
+                            DebugLog.Logar("Processo abortado na execucao da geracao !!! (lvFitness.FitnessCallNum: " + lvFitness.FitnessCallNum + "; lvCurrentObjectiveCalled = " + lvCurrentObjectiveCalled + "; lvPopulation.Count: " + lvPopulation.Count + ")", false, pIndet: TrainIndividual.IDLog);
+#else
+                            DebugLog.Save("Processo abortado na execucao da geracao !!! (lvFitness.FitnessCallNum: " + lvFitness.FitnessCallNum + "; lvCurrentObjectiveCalled = " + lvCurrentObjectiveCalled + "; lvPopulation.Count: " + lvPopulation.Count + ")");
+#endif
                             break;
+                        }
+                        else
+                        {
+                            lvCurrentObjectiveCalled = lvFitness.FitnessCallNum;
                         }
                     }
                 }
@@ -1150,9 +1162,10 @@ namespace TrainOptimization
                         //DebugLog.EnableDebug = true;
                         //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
 
+                        lvGeneIndividual.Save();
+
 #if DEBUG
                         lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-//                        lvGeneIndividual.Save();
 #else
                         lvGeneIndividual.Save();
                         ElapsedTimeDataAccess.Update(lvPopulation.UniqueId, DateTime.Now, lvFitness.FitnessCallNum, lvGeneIndividual.Fitness, lvPopulation.CurrentGeneration, lvPopulation.Count, lvPopulation.HillClimbingCallReg);
@@ -1182,6 +1195,7 @@ namespace TrainOptimization
             }
 
             this.mTimer.Start();
+            //DebugLog.Logar("this.mTimer.Start() !", false);
         }
 
         protected override void OnStop()

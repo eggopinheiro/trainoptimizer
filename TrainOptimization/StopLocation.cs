@@ -666,172 +666,179 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>,
         List<Segment> lvSegments = Segment.GetList();
         int lvIndex = 0;
 
-        if(pStopLocations != null)
+        try
         {
-            mListStopLoc = pStopLocations;
-        }
-
-        for(int ind = 0; ind < mListStopLoc.Count; ind++)
-        {
-            lvStopLocation = mListStopLoc[ind];
-
-            if(ind > 0)
+            if (pStopLocations != null)
             {
-                lvStopLocation.PrevStopLocation = mListStopLoc[ind - 1];
+                mListStopLoc = pStopLocations;
             }
 
-            if(ind < (mListStopLoc.Count - 1))
+            for (int ind = 0; ind < mListStopLoc.Count; ind++)
             {
-                lvStopLocation.NextStopLocation = mListStopLoc[ind + 1];
-            }
+                lvStopLocation = mListStopLoc[ind];
 
-            for (int i = lvIndex; i < lvSegments.Count; i++)
-            {
-                lvSegment = lvSegments[i];
-
-                if ((lvSegment.Start_coordinate < lvStopLocation.End_coordinate) && (lvSegment.End_coordinate > lvStopLocation.Start_coordinate) && (lvSegment.End_coordinate <= lvStopLocation.End_coordinate))
+                if (ind > 0)
                 {
-                    if (lvSegment.Track <= lvStopLocation.Capacity)
-                    {
-                        if (lvSegment.IsSwitch)
-                        {
-                            if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
-                            {
-                                lvSegment.IsSwitch = false;
-                                if (lvSegment.Track <= lvStopLocation.Capacity)
-                                {
-                                    lvSegment.OwnerStopLocation = lvStopLocation;
-                                }
-                            }
-                            else
-                            {
-                                lvStopLocation.Start_coordinate = lvSegment.End_coordinate;
-                            }
-                        }
-                        else
-                        {
-                            lvStopLocation.LeftSegment[lvSegment.Track - 1] = lvSegment;
-
-                            if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
-                            {
-                                if (lvSegment.Track <= lvStopLocation.Capacity)
-                                {
-                                    lvSegment.OwnerStopLocation = lvStopLocation;
-                                }
-                            }
-                        }
-                    }
+                    lvStopLocation.PrevStopLocation = mListStopLoc[ind - 1];
                 }
 
-                if((lvSegment.End_coordinate >= lvStopLocation.Start_coordinate) && (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate) && (lvSegment.Start_coordinate < lvStopLocation.End_coordinate))
+                if (ind < (mListStopLoc.Count - 1))
                 {
-                    if (lvSegment.Track <= lvStopLocation.Capacity)
+                    lvStopLocation.NextStopLocation = mListStopLoc[ind + 1];
+                }
+
+                for (int i = lvIndex; i < lvSegments.Count; i++)
+                {
+                    lvSegment = lvSegments[i];
+
+                    if ((lvSegment.Start_coordinate < lvStopLocation.End_coordinate) && (lvSegment.End_coordinate > lvStopLocation.Start_coordinate) && (lvSegment.End_coordinate <= lvStopLocation.End_coordinate))
                     {
-                        if (lvSegment.IsSwitch)
+                        if (lvSegment.Track <= lvStopLocation.Capacity)
                         {
-                            if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
+                            if (lvSegment.IsSwitch)
                             {
-                                lvSegment.IsSwitch = false;
-                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
                                 {
-                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                    lvSegment.IsSwitch = false;
+                                    if (lvSegment.Track <= lvStopLocation.Capacity)
+                                    {
+                                        lvSegment.OwnerStopLocation = lvStopLocation;
+                                    }
+                                }
+                                else
+                                {
+                                    lvStopLocation.Start_coordinate = lvSegment.End_coordinate;
                                 }
                             }
                             else
                             {
-                                lvStopLocation.End_coordinate = lvSegment.Start_coordinate;
-                            }
+                                lvStopLocation.LeftSegment[lvSegment.Track - 1] = lvSegment;
 
-                            if(i >= lvStopLocation.Capacity)
-                            {
-                                for (int idx=i-lvStopLocation.Capacity; idx < i; idx++)
+                                if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
                                 {
-                                    lvSegment = lvSegments[idx];
                                     if (lvSegment.Track <= lvStopLocation.Capacity)
                                     {
-                                        lvStopLocation.RightSegment[lvSegment.Track - 1] = lvSegment;
+                                        lvSegment.OwnerStopLocation = lvStopLocation;
                                     }
                                 }
                             }
                         }
-                        else
-                        {
-                            lvStopLocation.RightSegment[lvSegment.Track - 1] = lvSegment;
+                    }
 
-                            if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
+                    if ((lvSegment.End_coordinate >= lvStopLocation.Start_coordinate) && (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate) && (lvSegment.Start_coordinate < lvStopLocation.End_coordinate))
+                    {
+                        if (lvSegment.Track <= lvStopLocation.Capacity)
+                        {
+                            if (lvSegment.IsSwitch)
                             {
-                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
                                 {
-                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                    lvSegment.IsSwitch = false;
+                                    if (lvSegment.Track <= lvStopLocation.Capacity)
+                                    {
+                                        lvSegment.OwnerStopLocation = lvStopLocation;
+                                    }
+                                }
+                                else
+                                {
+                                    lvStopLocation.End_coordinate = lvSegment.Start_coordinate;
+                                }
+
+                                if (i >= lvStopLocation.Capacity)
+                                {
+                                    for (int idx = i - lvStopLocation.Capacity; idx < i; idx++)
+                                    {
+                                        lvSegment = lvSegments[idx];
+                                        if (lvSegment.Track <= lvStopLocation.Capacity)
+                                        {
+                                            lvStopLocation.RightSegment[lvSegment.Track - 1] = lvSegment;
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                lvStopLocation.RightSegment[lvSegment.Track - 1] = lvSegment;
+
+                                if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
+                                {
+                                    if (lvSegment.Track <= lvStopLocation.Capacity)
+                                    {
+                                        lvSegment.OwnerStopLocation = lvStopLocation;
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if (lvStopLocation.PrevSwitch == null)
-                {
-                    for (int indsw = i; indsw >= 0; indsw--)
+                    if ((lvStopLocation.PrevSwitch == null) && (lvSegment.OwnerStopLocation != null))
                     {
-                        lvSegment = lvSegments[indsw];
-
-                        if ((lvSegment.IsSwitch) && ((lvSegment.End_coordinate <= lvStopLocation.Start_coordinate) || (lvSegment.Start_coordinate == lvStopLocation.Start_coordinate)))
+                        for (int indsw = i - 1; indsw >= 0; indsw--)
                         {
-                            lvStopLocation.PrevSwitch = lvSegment;
-                            break;
+                            lvSegment = lvSegments[indsw];
+
+                            if ((lvSegment.IsSwitch) && ((lvSegment.End_coordinate <= lvStopLocation.Start_coordinate) || (lvSegment.Start_coordinate == lvStopLocation.Start_coordinate)))
+                            {
+                                lvStopLocation.PrevSwitch = lvSegment;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (lvStopLocation.NextSwitch == null)
-                {
-                    for (int indsw = i; indsw < lvSegments.Count; indsw++)
+                    if ((lvStopLocation.NextSwitch == null) && (lvSegment.OwnerStopLocation != null))
                     {
-                        lvSegment = lvSegments[indsw];
-
-                        if ((lvSegment.IsSwitch) && ((lvSegment.Start_coordinate >= lvStopLocation.End_coordinate) || (lvSegment.End_coordinate == lvStopLocation.End_coordinate)))
+                        for (int indsw = i + 1; indsw < lvSegments.Count; indsw++)
                         {
-                            lvStopLocation.NextSwitch = lvSegment;
-                            break;
+                            lvSegment = lvSegments[indsw];
+
+                            if ((lvSegment.IsSwitch) && ((lvSegment.Start_coordinate >= lvStopLocation.End_coordinate) || (lvSegment.End_coordinate == lvStopLocation.End_coordinate)))
+                            {
+                                lvStopLocation.NextSwitch = lvSegment;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if(lvSegments[i].Start_coordinate >= lvStopLocation.End_coordinate)
-                {
-                    lvIndex = i;
-                    break;
+                    if (lvSegments[i].Start_coordinate >= lvStopLocation.End_coordinate)
+                    {
+                        lvIndex = i;
+                        break;
+                    }
                 }
-            }
 
 #if DEBUG
-            if (DebugLog.EnableDebug)
-            {
-                StringBuilder lvStrInfo = new StringBuilder();
-
-                lvStrInfo.Clear();
-                lvStrInfo.Append("lvStopLocation => " + lvStopLocation + "\n");
-                lvStrInfo.Append("lvStopLocation.PrevSwitch => " + (lvStopLocation.PrevSwitch == null ? "null" : lvStopLocation.PrevSwitch.ToString()) + "\n");
-                lvStrInfo.Append("lvStopLocation.NextSwitch => " + (lvStopLocation.NextSwitch == null ? "null" : lvStopLocation.NextSwitch.ToString()) + "\n");
-                lvStrInfo.Append("lvStopLocation.PrevStopLocation => " + (lvStopLocation.PrevStopLocation == null ? "null" : lvStopLocation.PrevStopLocation.ToString()) + "\n");
-                lvStrInfo.Append("lvStopLocation.NextStopLocation => " + (lvStopLocation.NextStopLocation == null ? "null" : lvStopLocation.NextStopLocation.ToString()) + "\n");
-                for (int index=0; index < lvStopLocation.LeftSegment.Length; index++)
+                if (DebugLog.EnableDebug)
                 {
-                    lvSegment = lvStopLocation.LeftSegment[index];
-                    lvStrInfo.Append("lvStopLocation.LeftSegment => " + (lvSegment == null ? "null" : lvSegment.ToString()) + "\n");
-                }
-                for (int index = 0; index < lvStopLocation.RightSegment.Length; index++)
-                {
-                    lvSegment = lvStopLocation.RightSegment[index];
-                    lvStrInfo.Append("lvStopLocation.RightSegment => " + (lvSegment == null ? "null" : lvSegment.ToString()) + "\n");
-                }
+                    StringBuilder lvStrInfo = new StringBuilder();
 
-                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-            }
+                    lvStrInfo.Clear();
+                    lvStrInfo.Append("lvStopLocation => " + lvStopLocation + "\n");
+                    lvStrInfo.Append("lvStopLocation.PrevSwitch => " + (lvStopLocation.PrevSwitch == null ? "null" : lvStopLocation.PrevSwitch.ToString()) + "\n");
+                    lvStrInfo.Append("lvStopLocation.NextSwitch => " + (lvStopLocation.NextSwitch == null ? "null" : lvStopLocation.NextSwitch.ToString()) + "\n");
+                    lvStrInfo.Append("lvStopLocation.PrevStopLocation => " + (lvStopLocation.PrevStopLocation == null ? "null" : lvStopLocation.PrevStopLocation.ToString()) + "\n");
+                    lvStrInfo.Append("lvStopLocation.NextStopLocation => " + (lvStopLocation.NextStopLocation == null ? "null" : lvStopLocation.NextStopLocation.ToString()) + "\n");
+                    for (int index = 0; index < lvStopLocation.LeftSegment.Length; index++)
+                    {
+                        lvSegment = lvStopLocation.LeftSegment[index];
+                        lvStrInfo.Append("lvStopLocation.LeftSegment => " + (lvSegment == null ? "null" : lvSegment.ToString()) + "\n");
+                    }
+                    for (int index = 0; index < lvStopLocation.RightSegment.Length; index++)
+                    {
+                        lvSegment = lvStopLocation.RightSegment[index];
+                        lvStrInfo.Append("lvStopLocation.RightSegment => " + (lvSegment == null ? "null" : lvSegment.ToString()) + "\n");
+                    }
+
+                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                }
 #endif
-        }
+            }
 
-        Segment.LoadNeighborSwitch();
+            Segment.LoadNeighborSwitch();
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
+        }
     }
 
     public static void LoadList(string pStrFile)
@@ -1727,7 +1734,6 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>,
     {
         StringBuilder lvRes = new StringBuilder();
 
-        lvRes.Append("Stop Location: ");
         lvRes.Append(lvlocation);
         lvRes.Append(", Start: ");
         lvRes.Append(lvstart_coordinate);

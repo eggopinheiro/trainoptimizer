@@ -1568,7 +1568,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
     {
         StringBuilder lvRes = new StringBuilder();
 
-        lvRes.Append("Segment: ");
+        lvRes.Append("Location: ");
         lvRes.Append(lvlocation);
         lvRes.Append(", Start: ");
         lvRes.Append(lvstart_coordinate);

@@ -244,13 +244,14 @@ public class TrainMovement : IEquatable<TrainMovement>, IEnumerable<Gene>
             lvRes.Append(lvGene.TrainName);
             lvRes.Append(", Data: ");
             lvRes.Append(lvGene.Time);
-            lvRes.Append(", Local: ");
             if (lvGene.StopLocation != null)
             {
+                lvRes.Append(", Stop Location: ");
                 lvRes.Append(lvGene.StopLocation.Location);
             }
             else
             {
+                lvRes.Append(", Local: ");
                 lvRes.Append(lvGene.SegmentInstance.Location);
                 lvRes.Append(".");
                 lvRes.Append(lvGene.SegmentInstance.SegmentValue);

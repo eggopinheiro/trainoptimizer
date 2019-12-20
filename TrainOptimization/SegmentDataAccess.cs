@@ -11,6 +11,7 @@ using MySql.Data.MySqlClient;
 public class SegmentDataAccess
 {
     protected static Int64 mBranch = 0;
+    protected static string mBranchName = "";
 
     public SegmentDataAccess()
 	{
@@ -266,10 +267,9 @@ public class SegmentDataAccess
 
         if (ds.Tables[0].Rows.Count > 0)
         {
-            lvRes = Convert.ToInt64(ds.Tables[0].Rows[0][0]);
+            mBranch = Convert.ToInt64(ds.Tables[0].Rows[0][0]);
+            mBranchName = pStrBranch;
         }
-
-        mBranch = lvRes;
     }
 
     [DataObjectMethod(DataObjectMethodType.Select)]
@@ -669,6 +669,14 @@ public class SegmentDataAccess
         get
         {
             return mBranch;
+        }
+    }
+
+    public static string BranchName
+    {
+        get
+        {
+            return mBranchName;
         }
     }
 }

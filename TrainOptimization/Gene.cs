@@ -357,10 +357,18 @@ public class Gene : IEquatable<Gene>
         lvRes.Append(mTrainId);
         lvRes.Append(" - ");
         lvRes.Append(mTrainName);
-        lvRes.Append(", Location: ");
-        lvRes.Append(mSegment.Location);
-        lvRes.Append(", UD: ");
-        lvRes.Append(mSegment.SegmentValue);
+        if (mStopLocation != null)
+        {
+            lvRes.Append(", Stop Location: ");
+            lvRes.Append(mStopLocation);
+        }
+        else if(mSegment != null)
+        {
+            lvRes.Append(", Location: ");
+            lvRes.Append(mSegment.Location);
+            lvRes.Append(", UD: ");
+            lvRes.Append(mSegment.SegmentValue);
+        }
         lvRes.Append(", Direction: ");
         lvRes.Append(mDirection);
         lvRes.Append(", Track: ");
@@ -373,12 +381,6 @@ public class Gene : IEquatable<Gene>
         lvRes.Append(GetStateString());
         lvRes.Append(", Speed: ");
         lvRes.Append(mSpeed);
-
-        if (mStopLocation != null)
-        {
-            lvRes.Append(", Stop Location: ");
-            lvRes.Append(mStopLocation);
-        }
 
         return lvRes.ToString();
     }
