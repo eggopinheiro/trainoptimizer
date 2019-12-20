@@ -17,7 +17,7 @@ public interface IIndividual<T> : IComparable<IIndividual<T>>, IEnumerable<Train
     bool IsValid();
     int GetUniqueId();
     int GetDistanceFrom(IIndividual<T> pIndividual);
-    IEnumerable<Gene> MoveTrain(T pTrainMov, out Gene[] pUsedHeadway, DateTime pInitialTime = default(DateTime), bool pUpdate = true, DateTime pForcedDepTime = default(DateTime), bool pNoStopBeforeSwitch = false);
+    IEnumerable<Gene> MoveTrain(T pTrainMov, out Gene[] pUsedHeadway, ref bool pHasStopped, DateTime pInitialTime = default(DateTime), bool pUpdate = true, DateTime pForcedDepTime = default(DateTime), bool pNoStopBeforeSwitch = false);
     IEnumerable<T> GetElements(int pStartIndex, int pEndIndex);
     void AddElements(IEnumerable<T> pElemetns, bool pNeedUpdate = true);
     void AddElementRef(T pElement);

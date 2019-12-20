@@ -2006,6 +2006,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         int lvCount = 0;
         bool lvVerifyPriorityList = false;
         bool lvCanMoveAll = false;
+        bool lvHasStopped = false;
 
         if (mStartDelayed > 0.0)
         {
@@ -2201,11 +2202,11 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             if ((lvTrainMov.Last.TrainId == lvTrainPriorityList[0].TrainId))
                             {
                                 lvVerifyPriorityList = true;
-                                lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
+                                lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, ref lvHasStopped, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
                             }
                             else if(!lvDicTrainPrefSet[lvNextStopLocation.Location].Contains(lvTrainMov.Last.TrainId))
                             {
-                                lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
+                                lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, ref lvHasStopped, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
                             }
                             else
                             {
@@ -2236,14 +2237,14 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                         }
 
                                         lvVerifyPriorityList = true;
-                                        lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
+                                        lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, ref lvHasStopped, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
                                     }
                                 }
                             }
                         }
                         else
                         {
-                            lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
+                            lvTrainMovRes = (TrainMovement)lvIndividual.MoveTrain(lvTrainMov, out lvUsedHeadway, ref lvHasStopped, DateTime.MaxValue, pForcedDepTime: lvForcedDepTime);
                         }
 
                         lvCount = lvTrainPriorityList.Count;
@@ -4351,6 +4352,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         int lvQueueCount = pQueue.Count;
         DateTime lvTimeLine = DateTime.MaxValue;
         Gene[] lvUserHeadway;
+        bool lvHasStopped = false;
 
         bool lvIsLogEnables = DebugLog.EnableDebug;
 
@@ -4370,7 +4372,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             }
 #endif
 
-            lvTrainMovRes = pIndividual.MoveTrain(lvTrainMovement, out lvUserHeadway, lvTimeLine);
+            lvTrainMovRes = pIndividual.MoveTrain(lvTrainMovement, out lvUserHeadway, ref lvHasStopped, lvTimeLine);
             if (lvTrainMovRes != null)
             {
 #if DEBUG
@@ -4431,6 +4433,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         HashSet<int> lvHashSetDaughter = new HashSet<int>();
         DateTime lvTimeLine = DateTime.MaxValue;
         Gene[] lvUsedHeadway;
+        bool lvHasStopped = false;
         pSon = null;
         pDaughter = null;
 
@@ -4592,7 +4595,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                            lvTrainMovRes = pSon.MoveTrain(lvMovMother, out lvUsedHeadway, lvTimeLine);
+                            lvTrainMovRes = pSon.MoveTrain(lvMovMother, out lvUsedHeadway, ref lvHasStopped, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
 #if DEBUG
@@ -4684,7 +4687,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                            lvTrainMovRes = pSon.MoveTrain(lvMovFather, out lvUsedHeadway, lvTimeLine);
+                            lvTrainMovRes = pSon.MoveTrain(lvMovFather, out lvUsedHeadway, ref lvHasStopped, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
 #if DEBUG
@@ -4779,7 +4782,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                            lvTrainMovRes = pDaughter.MoveTrain(lvMovFather, out lvUsedHeadway, lvTimeLine);
+                            lvTrainMovRes = pDaughter.MoveTrain(lvMovFather, out lvUsedHeadway, ref lvHasStopped, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
 #if DEBUG
@@ -4872,7 +4875,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                            lvTrainMovRes = pDaughter.MoveTrain(lvMovMother, out lvUsedHeadway, lvTimeLine);
+                            lvTrainMovRes = pDaughter.MoveTrain(lvMovMother, out lvUsedHeadway, ref lvHasStopped, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
 #if DEBUG
@@ -5092,6 +5095,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         int lvPrevTrainMovementIndex = -1;
         int lvEndIndex = -1;
         bool lvOnStartStopLocation = false;
+        bool lvHasStopped = false;
 
         bool lvIsLogEnables = DebugLog.EnableDebug;
 
@@ -5273,7 +5277,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 #endif
 
                     /* insere o RefGene correspondente */
-                    lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvInitialPos], out lvUsedHeadway, lvTimeLine, pUpdate);
+                    lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvInitialPos], out lvUsedHeadway, ref lvHasStopped, lvTimeLine, pUpdate);
                     //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: mCurrentGeneration);
 
                     if (lvTrainMovRes == null)
@@ -5328,7 +5332,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                 DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                                lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], out lvUsedHeadway, lvTimeLine, pUpdate);
+                                lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], out lvUsedHeadway, ref lvHasStopped, lvTimeLine, pUpdate);
                                 //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: mCurrentGeneration);
 
                                 if (lvTrainMovRes == null)
@@ -5375,7 +5379,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 #endif
 
                         /* insere o RefGene correspondente */
-                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvEndIndex], out lvUsedHeadway, lvTimeLine, pUpdate);
+                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvEndIndex], out lvUsedHeadway, ref lvHasStopped, lvTimeLine, pUpdate);
                         //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: mCurrentGeneration);
 
                         if (lvTrainMovRes == null)
@@ -5413,7 +5417,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         DebugLog.EnableDebug = lvIsLogEnables;
 #endif
 
-                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], out lvUsedHeadway, lvTimeLine, pUpdate);
+                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], out lvUsedHeadway, ref lvHasStopped, lvTimeLine, pUpdate);
                         //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: mCurrentGeneration);
 
                         if (lvTrainMovRes == null)

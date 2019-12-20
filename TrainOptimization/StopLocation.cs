@@ -1715,13 +1715,13 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>,
         }
     }
 
-    public bool HasNoStop(string pStrKey)
+    public bool HasNoStop(Gene pGene)
     {
         bool lvRes = false;
 
-        lock(mNoStopSet)
+        lock (mNoStopSet)
         {
-            if (mNoStopSet.Contains(pStrKey))
+            if (mNoStopSet.Contains(pGene.TrainName.Substring(0, 1) + pGene.Direction) || mNoStopSet.Contains(pGene.TrainId.ToString()))
             {
                 lvRes = true;
             }

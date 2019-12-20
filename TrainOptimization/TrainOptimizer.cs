@@ -229,6 +229,7 @@ namespace TrainOptimization
             TrainIndividual.StrategyFactor = lvStrategyFactor;
 
             TrainIndividual.VMA = double.Parse(ConfigurationManager.AppSettings["VMA"]);
+            TrainIndividual.SpeedUpFactor = double.Parse(ConfigurationManager.AppSettings["SPEEDUP_FACTOR"]);
             TrainIndividual.TrainLen = int.Parse(ConfigurationManager.AppSettings["TRAIN_LEN"]);
             TrainIndividual.LimitDays = int.Parse(ConfigurationManager.AppSettings["LIMIT_DAYTIME"]);
             StopLocation.MinLen = TrainIndividual.TrainLen;
@@ -1014,6 +1015,7 @@ namespace TrainOptimization
                 TrainIndividual.StrategyFactor = lvStrategyFactor;
 
                 TrainIndividual.VMA = double.Parse(ConfigurationManager.AppSettings["VMA"]);
+                TrainIndividual.SpeedUpFactor = double.Parse(ConfigurationManager.AppSettings["SPEEDUP_FACTOR"]);
                 TrainIndividual.TrainLen = int.Parse(ConfigurationManager.AppSettings["TRAIN_LEN"]);
                 TrainIndividual.LimitDays = int.Parse(ConfigurationManager.AppSettings["LIMIT_DAYTIME"]);
 
