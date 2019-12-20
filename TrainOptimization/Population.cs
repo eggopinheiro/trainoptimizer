@@ -23,7 +23,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
     private static Dictionary<string, double> mPriority = new Dictionary<string, double>();
     private Dictionary<int, List<IIndividual<TrainMovement>>> mClusterAssignment = null;
     private static Dictionary<Int64, List<Trainpat>> mPATs = null;
-    private Dictionary<Int64, List<Gene>> mTrainSequence = null;
+    private Dictionary<Int64, Gene[]> mTrainSequence = null;
     private IFitness<TrainMovement> mFitness = null;
     private DateTime mInitialDate;
     private DateTime mFinalDate;
@@ -384,7 +384,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         {
             Parallel.For(0, lvSavedIndividualsIds.Count, new ParallelOptions { MaxDegreeOfParallelism = MAX_PARALLEL_THREADS }, i =>
             {
-                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
                 TrainIndividual.IDLog = lvIndividual.GetUniqueId();
                 bool lvValidIndividual = lvIndividual.GenerateIndividual(mPlanList, lvSavedIndividualsIds[i], mAllowDeadLockIndividual);
 
@@ -399,7 +399,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
             Parallel.For(0, pSize, new ParallelOptions { MaxDegreeOfParallelism = MAX_PARALLEL_THREADS }, i =>
             {
-                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
                 TrainIndividual.IDLog = lvIndividual.GetUniqueId();
                 bool lvValidIndividual = lvIndividual.GenerateIndividual(mPlanList, 0, mAllowDeadLockIndividual);
 
@@ -416,7 +416,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         {
             for (int i = 0; i < lvSavedIndividualsIds.Count; i++)
             {
-                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
                 TrainIndividual.IDLog = lvIndividual.GetUniqueId();
                 bool lvValidIndividual = lvIndividual.GenerateIndividual(mPlanList, lvSavedIndividualsIds[i], mAllowDeadLockIndividual);
 
@@ -428,7 +428,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
             for (int i = 0; i < pSize; i++)
             {
-                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+                IIndividual<TrainMovement> lvIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
                 TrainIndividual.IDLog = lvIndividual.GetUniqueId();
                 bool lvValidIndividual = lvIndividual.GenerateIndividual(mPlanList, 0, mAllowDeadLockIndividual);
 
@@ -1622,6 +1622,11 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
         if (lvStrKey.Length > 0)
         {
+            if(mTrainSequence == null)
+            {
+                mTrainSequence = new Dictionary<long, Gene[]>();
+            }
+
             if(pGene.StopLocation != null)
             {
                 lvCurrentStopLocationPos = pGene.StopLocation.Location;
@@ -1630,6 +1635,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             {
                 lvCurrentStopLocationPos = pGene.Coordinate;
             }
+
+            lvGenes = new Gene[StopLocation.TrainSequence[lvStrKey].Count];
 
             foreach (string[] lvElements in StopLocation.TrainSequence[lvStrKey])
             {
@@ -1641,8 +1648,6 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                         if (((pGene.Direction > 0) && (lvCurrentStopLocationPos <= lvStartStopLocationValue)) || ((pGene.Direction < 0) && (lvCurrentStopLocationPos >= lvStartStopLocationValue)))
                         {
-                            lvGenes = new Gene[StopLocation.TrainSequence[lvStrKey].Count];
-
                             lvGene = new Gene();
 
                             lvGene.TrainId = pGene.TrainId;
@@ -1689,9 +1694,19 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             {
                                 lvGene.EndStopLocation = StopLocation.GetCurrentStopSegment(Convert.ToInt32(lvElements[3]), 1, out lvIndex);
                             }
+                            if (lvGene.Direction > 0)
+                            {
+                                lvGene.End = lvGene.EndStopLocation.Start_coordinate;
+                            }
+                            else if (lvGene.Direction < 0)
+                            {
+                                lvGene.End = lvGene.EndStopLocation.End_coordinate;
+                            }
 
                             lvGene.Sequence = (short)++lvSeq;
                             lvGene.ValueWeight = pGene.ValueWeight;
+
+                            lvGenes[lvSeq] = lvGene;
                         }
                     }
                 }
@@ -1700,8 +1715,9 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
                 }
             }
-        }
 
+            mTrainSequence.Add(pGene.TrainId, lvGenes);
+        }
     }
 
     private void LoadTrainList()
@@ -3763,7 +3779,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             }
 
             lvInitialSon = pFather.GetElements(mTrainList.Count, lvCrossOverPos[0]);
-            pSon = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+            pSon = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
             pSon.AddElements(lvInitialSon);
 
             foreach (TrainMovement lvTrainMov in lvInitialSon)
@@ -3773,7 +3789,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             //DebugLog.Logar("DoCrossOver.pSon.VerifyConflict() = " + ((TrainIndividual)pSon).VerifyConflict(), pIndet: TrainIndividual.IDLog);
 
             lvInitialDaughter = pMother.GetElements(mTrainList.Count, lvCrossOverPos[0]);
-            pDaughter = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+            pDaughter = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
             pDaughter.AddElements(lvInitialDaughter);
 
             foreach (TrainMovement lvTrainMov in lvInitialDaughter)
@@ -4339,7 +4355,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                 if ((lvRefTrainMovement.Last.TrainId != lvTrainMovement.Last.TrainId) && ((mTrainList.Count + 1) < lvInitialPos))
                 {
-                    lvMutatedIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+                    lvMutatedIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mTrainSequence, mRandom);
 #if DEBUG
                     DebugLog.EnableDebug = true;
                     if (DebugLog.EnableDebug)

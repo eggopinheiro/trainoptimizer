@@ -46,18 +46,19 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
     private static double mVMA = 80.0;
     private static int mStrategyFactor = 1;
 
-    public TrainIndividual(List<TrainMovement> pGenes, int pUniqueId, Dictionary<int, int> pDicDistRef, IFitness<TrainMovement> pFitness, DateTime pDateRef, Dictionary<Int64, List<Trainpat>> pPATs, Random pRandom) : this(pFitness, pDateRef, pGenes, pPATs, pRandom)
+    public TrainIndividual(List<TrainMovement> pGenes, int pUniqueId, Dictionary<int, int> pDicDistRef, IFitness<TrainMovement> pFitness, DateTime pDateRef, Dictionary<Int64, List<Trainpat>> pPATs, Dictionary<Int64, Gene[]> pTrainSequence, Random pRandom) : this(pFitness, pDateRef, pGenes, pPATs, pTrainSequence, pRandom)
     {
         mUniqueId = pUniqueId;
         mDicDistRef = pDicDistRef;
     }
 
-    public TrainIndividual(IFitness<TrainMovement> pFitness, DateTime pDateRef, List<TrainMovement> pTrainList, Dictionary<Int64, List<Trainpat>> pPATs, Random pRandom)
+    public TrainIndividual(IFitness<TrainMovement> pFitness, DateTime pDateRef, List<TrainMovement> pTrainList, Dictionary<Int64, List<Trainpat>> pPATs, Dictionary<Int64, Gene[]> pTrainSequence, Random pRandom)
     {
         mFitness = pFitness;
         mList = new List<TrainMovement>();
         mDicTrain = new Dictionary<Int64, TrainMovement>();
         mTrainFinished = new HashSet<Int64>();
+        mTrainSequence = pTrainSequence;
 
         mUniqueId = RuntimeHelpers.GetHashCode(this);
 
@@ -121,7 +122,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
     public IIndividual<TrainMovement> Clone()
     {
-        IIndividual<TrainMovement> lvRes = new TrainIndividual(mList, mUniqueId, mDicDistRef, mFitness, mDateRef, mPATs, mRandom);
+        IIndividual<TrainMovement> lvRes = new TrainIndividual(mList, mUniqueId, mDicDistRef, mFitness, mDateRef, mPATs, mTrainSequence, mRandom);
 
         return lvRes;
     }
@@ -1942,6 +1943,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         TrainMovement lvPlanMovement = null;
         TrainMovement lvTrainMovRes = null;
         bool lvLoadedDataStatus = false;
+        Gene lvNextPlanGene = null;
         DateTime lvCurrentTime = DateTime.MaxValue;
         int lvTotalValue = 0;
         int lvTotal = 0;
@@ -2087,6 +2089,20 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                 else if((lvPlannedSet.Count == 0) && (lvPlans.Count > 0))
                                 {
                                     lvPlans = new List<TrainMovement>();
+                                }
+
+                                if(mTrainFinished.Contains(lvTrainMovement.Last.TrainId))
+                                {
+                                    if((mTrainSequence.ContainsKey(lvTrainMovement.Last.TrainId)) && (mTrainSequence[lvTrainMovement.Last.Track] != null) && (mTrainSequence[lvTrainMovement.Last.Track].Length > (lvTrainMovement.Last.Sequence + 1)))
+                                    {
+                                        lvNextPlanGene = lvTrainMovement.Last;
+                                        lvNextPlanGene.Sequence++;
+
+                                        mTrainFinished.Remove(lvTrainMovement.Last.TrainId);
+
+                                        lvPlannedSet.Add()
+                                        /* Adicionar a lista de planos */
+                                    }
                                 }
                             }
                         }
