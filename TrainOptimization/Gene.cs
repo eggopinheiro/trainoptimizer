@@ -12,6 +12,7 @@ public class Gene : IEquatable<Gene>
 {
     private int mId = 0;
     private Int64 mTrainId = 0L;
+    private Int16 mSequence = 0;
     private DateTime mTime = DateTime.MinValue;
     private Segment mSegment = null;
     private Int16 mTrack = 0;
@@ -280,6 +281,19 @@ public class Gene : IEquatable<Gene>
         set
         {
             mOptimumTime = value;
+        }
+    }
+
+    public short Sequence
+    {
+        get
+        {
+            return mSequence;
+        }
+
+        set
+        {
+            mSequence = value;
         }
     }
 

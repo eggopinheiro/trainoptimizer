@@ -33,6 +33,8 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     protected bool mHasBackwardDirection = false;
     private const int CSIDES = 2;
 
+    private static Dictionary<string, List<string[]>> mTrainSequence = new Dictionary<string, List<string[]>>();
+
     public StopLocation()
 	{
 		Clear();
@@ -747,12 +749,16 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     public static void LoadList(string pStrFile)
     {
         StopLocation lvStopLocation;
+        List<string[]> lvTrainStationsSettings;
         string lvStrDependency;
         string[] lvVarDependency;
         string[] lvVarElements;
+        string lvStrKey = "";
+        string[] lvStrValues = null;
+        string lvStrPrefix = "";
         int lvKey;
         int lvValue;
-        int lvDirection;
+        int lvDirection = 0;
 
         mListStopLoc = new List<StopLocation>();
 
@@ -884,6 +890,58 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                             }
 
                             mListStopLoc.Add(lvStopLocation);
+
+                            break;
+
+                        case "TrainStation":
+                            if (lvXmlReader["train_type"] != null)
+                            {
+                                lvStrPrefix = lvXmlReader["train_type"];
+                            }
+
+                            if (lvXmlReader["direction"] != null)
+                            {
+                                lvDirection = Convert.ToInt32(lvXmlReader["direction"]);
+                            }
+
+                            lvStrKey = lvStrPrefix + "_" + lvDirection;
+
+                            break;
+
+                        case "Schedule":
+                            lvStrValues = new string[4];
+
+                            if (lvXmlReader["departure_time"] != null)
+                            {
+                                lvStrValues[0] = lvXmlReader["departure_time"];
+                            }
+
+                            if (lvXmlReader["arrival_time"] != null)
+                            {
+                                lvStrValues[1] = lvXmlReader["arrival_time"];
+                            }
+
+                            if (lvXmlReader["origin"] != null)
+                            {
+                                lvStrValues[2] = lvXmlReader["origin"];
+                            }
+
+                            if (lvXmlReader["destination"] != null)
+                            {
+                                lvStrValues[3] = lvXmlReader["destination"];
+                            }
+
+                            if (mTrainSequence.ContainsKey(lvStrKey))
+                            {
+                                lvTrainStationsSettings = mTrainSequence[lvStrKey];
+                                lvTrainStationsSettings.Add(lvStrValues);
+                            }
+                            else
+                            {
+                                lvTrainStationsSettings = new List<string[]>();
+                                lvTrainStationsSettings.Add(lvStrValues);
+                                mTrainSequence.Add(lvStrKey, lvTrainStationsSettings);
+                            }
 
                             break;
                     }
@@ -1518,6 +1576,14 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         set
         {
             mHasBackwardDirection = value;
+        }
+    }
+
+    public static Dictionary<string, List<string[]>> TrainSequence
+    {
+        get
+        {
+            return mTrainSequence;
         }
     }
 

@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using System.Globalization;
 
 /// <summary>
 /// Summary description for Population
@@ -22,6 +23,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
     private static Dictionary<string, double> mPriority = new Dictionary<string, double>();
     private Dictionary<int, List<IIndividual<TrainMovement>>> mClusterAssignment = null;
     private static Dictionary<Int64, List<Trainpat>> mPATs = null;
+    private Dictionary<Int64, List<Gene>> mTrainSequence = null;
     private IFitness<TrainMovement> mFitness = null;
     private DateTime mInitialDate;
     private DateTime mFinalDate;
@@ -62,6 +64,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
     private bool mECSOnlyHeated = false;
     private bool mAllowDeadLockIndividual = false;
     private double mBestFitness = Double.MaxValue;
+    private double mStartDelayed = 0.0;
     private int mECSRemoveValue = 0;
     private int mUniqueId = -1;
     private Random mRandom = null;
@@ -140,6 +143,11 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         if (!Int32.TryParse(ConfigurationManager.AppSettings["NUM_LOAD_INDIVIDUALS"], out lvNumLoadIndividuals))
         {
             lvNumLoadIndividuals = 0;
+        }
+
+        if (!double.TryParse(ConfigurationManager.AppSettings["START_DELAYED"], out mStartDelayed))
+        {
+            mStartDelayed = 0.0;
         }
 
         double lvLocalSearchFactor;
@@ -336,11 +344,18 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         mDateRef = lvGene.Time;
                     }
                 }
+
+                LoadTrainSequence(lvTrainMov.Last);
             }
 
             if ((mDateRef == DateTime.MinValue) && (mPlanList.Count > 0))
             {
                 mDateRef = mPlanList[0][0].DepartureTime;
+            }
+
+            foreach(TrainMovement lvPlanMov in mPlanList)
+            {
+                LoadTrainSequence(lvPlanMov.Last);
             }
         }
 
@@ -1585,6 +1600,110 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         }
     }
 
+    private void LoadTrainSequence(Gene pGene)
+    {
+        string lvStrKey;
+        Gene[] lvGenes = null;
+        Gene lvGene = null;
+        int lvSeq = -1;
+        int lvStartStopLocationValue;
+        int lvCurrentStopLocationPos;
+        int lvIndex;
+
+        lvStrKey = pGene.TrainName.Substring(0, 1) + "_" + pGene.Direction;
+        if(!StopLocation.TrainSequence.ContainsKey(lvStrKey))
+        {
+            lvStrKey = pGene.TrainName + "_" + pGene.Direction;
+            if (!StopLocation.TrainSequence.ContainsKey(lvStrKey))
+            {
+                lvStrKey = "";
+            }
+        }
+
+        if (lvStrKey.Length > 0)
+        {
+            if(pGene.StopLocation != null)
+            {
+                lvCurrentStopLocationPos = pGene.StopLocation.Location;
+            }
+            else
+            {
+                lvCurrentStopLocationPos = pGene.Coordinate;
+            }
+
+            foreach (string[] lvElements in StopLocation.TrainSequence[lvStrKey])
+            {
+                try
+                {
+                    if(lvElements.Length >= 4)
+                    {
+                        lvStartStopLocationValue = Convert.ToInt32(lvElements[2]);
+
+                        if (((pGene.Direction > 0) && (lvCurrentStopLocationPos <= lvStartStopLocationValue)) || ((pGene.Direction < 0) && (lvCurrentStopLocationPos >= lvStartStopLocationValue)))
+                        {
+                            lvGenes = new Gene[StopLocation.TrainSequence[lvStrKey].Count];
+
+                            lvGene = new Gene();
+
+                            lvGene.TrainId = pGene.TrainId;
+                            lvGene.Direction = pGene.Direction;
+                            lvGene.Track = pGene.Track; // Lembrar de mudar a track na sequencia dos planos
+
+                            if (lvElements[0].Trim().Length == 0)
+                            {
+                                lvGene.DepartureTime = pGene.DepartureTime;
+                            }
+                            else
+                            {
+                                lvGene.DepartureTime = DateTime.ParseExact(DateTime.Now.Date.ToString("dd/MM/yyyy") + " " + lvElements[0], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                if (lvGene.DepartureTime < DateTime.Now)
+                                {
+                                    lvGene.DepartureTime = DateTime.ParseExact(DateTime.Now.Date.AddDays(1).ToString("dd/MM/yyyy") + " " + lvElements[0], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                }
+                            }
+
+                            lvGene.OptimumTime = DateTime.ParseExact(DateTime.Now.Date.ToString("dd/MM/yyyy") + " " + lvElements[1], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                            if(lvGene.OptimumTime < DateTime.Now)
+                            {
+                                lvGene.OptimumTime = DateTime.ParseExact(DateTime.Now.Date.AddDays(1).ToString("dd/MM/yyyy") + " " + lvElements[1], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                            }
+
+                            lvGene.StartStopLocation = StopLocation.GetCurrentStopSegment(lvStartStopLocationValue, 1, out lvIndex);
+                            lvGene.StopLocation = lvGene.StartStopLocation;
+                            lvGene.SegmentInstance = lvGene.StopLocation.GetSegment(lvGene.Direction, lvGene.Track);
+                            if (lvGene.Direction > 0)
+                            {
+                                lvGene.Start = lvGene.StartStopLocation.End_coordinate;
+                            }
+                            else if (lvGene.Direction < 0)
+                            {
+                                lvGene.Start = lvGene.StartStopLocation.Start_coordinate;
+                            }
+                            lvGene.Coordinate = lvGene.Start;
+
+                            if (lvElements[3].Trim().Length == 0)
+                            {
+                                lvGene.EndStopLocation = pGene.EndStopLocation;
+                            }
+                            else
+                            {
+                                lvGene.EndStopLocation = StopLocation.GetCurrentStopSegment(Convert.ToInt32(lvElements[3]), 1, out lvIndex);
+                            }
+
+                            lvGene.Sequence = (short)++lvSeq;
+                            lvGene.ValueWeight = pGene.ValueWeight;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
+                }
+            }
+        }
+
+    }
+
     private void LoadTrainList()
     {
         HashSet<Int64> lvTrainSet = new HashSet<Int64>();
@@ -1616,7 +1735,14 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         DebugLog.Logar("Listando trens a serem considerados:", false, pIndet: TrainIndividual.IDLog);
 #endif
 
-        lvDataTrains = TrainmovsegmentDataAccess.GetCurrentTrainsData(mInitialDate, mFinalDate).Tables[0];
+        if(mStartDelayed > 0.0)
+        {
+            lvDataTrains = TrainmovsegmentDataAccess.GetCurrentTrainsData(mDateRef.AddHours(mStartDelayed), mFinalDate, true).Tables[0];
+        }
+        else
+        {
+            lvDataTrains = TrainmovsegmentDataAccess.GetCurrentTrainsData(mInitialDate, mFinalDate).Tables[0];
+        }
 
         try
         {
@@ -1780,6 +1906,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                 lvTrainMovement.Add(lvGene);
                                 lvTrainMovement.LoadId();
 
+                                LoadTrainSequence(lvGene);
+
                                 mTrainList.Insert(0, lvTrainMovement);
                                 lvTrainSet.Add(lvGene.TrainId);
 #if DEBUG
@@ -1794,6 +1922,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                 lvTrainMovement = new TrainMovement();
                                 lvTrainMovement.Add(lvGene);
                                 lvTrainMovement.LoadId();
+
+                                LoadTrainSequence(lvGene);
 
                                 mTrainList.Add(lvTrainMovement);
                                 lvTrainSet.Add(lvGene.TrainId);
@@ -1810,6 +1940,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                             lvTrainMovement = new TrainMovement();
                             lvTrainMovement.Add(lvGene);
                             lvTrainMovement.LoadId();
+
+                            LoadTrainSequence(lvGene);
 
                             mTrainList.Insert(0, lvTrainMovement);
                             lvTrainSet.Add(lvGene.TrainId);
@@ -1845,11 +1977,25 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
             if (DateTime.Now.Date == mInitialDate.Date)
             {
-                lvDataPlans = PlanDataAccess.GetCurrentPlans(DateTime.Now, mFinalDate.AddDays(1)).Tables[0];
+                if (mStartDelayed == 0.0)
+                {
+                    lvDataPlans = PlanDataAccess.GetCurrentPlans(DateTime.Now, mFinalDate.AddDays(1)).Tables[0];
+                }
+                else
+                {
+                    lvDataPlans = PlanDataAccess.GetCurrentPlans(DateTime.Now.AddHours(mStartDelayed), mFinalDate.AddDays(1)).Tables[0];
+                }
             }
             else
             {
-                lvDataPlans = PlanDataAccess.GetCurrentPlans(mFinalDate, mFinalDate.AddDays(1)).Tables[0];
+                if (mStartDelayed == 0.0)
+                {
+                    lvDataPlans = PlanDataAccess.GetCurrentPlans(mFinalDate, mFinalDate.AddDays(1)).Tables[0];
+                }
+                else
+                {
+                    lvDataPlans = PlanDataAccess.GetCurrentPlans(mFinalDate.AddHours(mStartDelayed), mFinalDate.AddDays(1)).Tables[0];
+                }
             }
 
             foreach (DataRow row in lvDataPlans.Rows)
@@ -1943,6 +2089,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                         if (mTrainAllowed.Count == 0)
                         {
+                            LoadTrainSequence(lvGene);
+
                             lvTrainMovement = new TrainMovement();
                             lvTrainMovement.Add(lvGene);
                             mPlanList.Add(lvTrainMovement);
@@ -1952,6 +2100,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         }
                         else if (mTrainAllowed.Contains(lvGene.TrainName.Substring(0, 1)))
                         {
+                            LoadTrainSequence(lvGene);
+
                             lvTrainMovement = new TrainMovement();
                             lvTrainMovement.Add(lvGene);
                             mPlanList.Add(lvTrainMovement);
@@ -4047,6 +4197,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         DateTime lvTimeLine = DateTime.MaxValue;
         int lvPrevTrainMovementIndex = -1;
         int lvEndIndex = -1;
+        bool lvOnStartStopLocation = false;
 
         bool lvIsLogEnables = DebugLog.EnableDebug;
 
@@ -4081,9 +4232,14 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                 lvRefTrainMovement = lvTrainMovement;
 
-                if ((lvTrainMovement != null) && (lvTrainMovement[0].StopLocation == null) || (lvTrainMovement[0].StopLocation.Location == lvTrainMovement[0].StartStopLocation.Location))
+                if ((lvTrainMovement != null) && (lvTrainMovement[0].StopLocation == null))
                 {
                     return lvMutatedIndividual;
+                }
+
+                if (lvTrainMovement[0].StopLocation.Location == lvTrainMovement[0].StartStopLocation.Location)
+                {
+                    lvOnStartStopLocation = true;
                 }
 
                 if (pSteps > 1)
@@ -4103,10 +4259,25 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                             lvRefPos.Add(i);
 
-                            if(lvRefPos.Count >= pSteps)
+                            if((lvRefPos.Count >= pSteps) || lvOnStartStopLocation)
                             {
                                 break;
                             }
+                        }
+                        else if(lvOnStartStopLocation && (pIndividual[i][0].StopLocation.Location == pIndividual[i][0].StartStopLocation.Location) && (pIndividual[i].Last.Direction == lvTrainMovement.Last.Direction))
+                        {
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            if (DebugLog.EnableDebug)
+                            {
+                                DebugLog.Logar("lvRefPos.Add(" + i + ")", pIndet: TrainIndividual.IDLog);
+                            }
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                            lvRefPos.Add(i+1);
+
+                            break;
                         }
                     }
                 }
@@ -4117,6 +4288,11 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     if (pIndividual[i].Last.TrainId == lvTrainMovement.Last.TrainId)
                     {
                         lvPrevTrainMovementIndex = i;
+                        break;
+                    }
+                    else if (lvOnStartStopLocation && (pIndividual[i][0].StopLocation.Location == pIndividual[i][0].StartStopLocation.Location) && (pIndividual[i].Last.Direction == lvTrainMovement.Last.Direction))
+                    {
+                        lvPrevTrainMovementIndex = i+1;
                         break;
                     }
                 }

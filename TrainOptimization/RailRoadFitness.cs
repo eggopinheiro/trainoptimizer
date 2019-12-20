@@ -14,6 +14,8 @@ public class RailRoadFitness : IFitness<TrainMovement>
     private string mStrHeaderResult = "";
     private int mFunctionCallReg = 0;
     private string mType = "";
+    private double mOptEarlyPenalty;
+    private double mOptDelayedPenalty;
     private Population mPopulation = null;
 
     public RailRoadFitness(double pVMA, string pStrType = "", int pFunctionCallReg = 0)
@@ -35,6 +37,16 @@ public class RailRoadFitness : IFitness<TrainMovement>
         else
         {
             mFunctionCallReg = pFunctionCallReg;
+        }
+
+        if (!double.TryParse(ConfigurationManager.AppSettings["OPT_EARLY_PENALTY"], out mOptEarlyPenalty))
+        {
+            mOptEarlyPenalty = 1.0;
+        }
+
+        if (!double.TryParse(ConfigurationManager.AppSettings["OPT_DELAYED_PENALTY"], out mOptDelayedPenalty))
+        {
+            mOptDelayedPenalty = 1.0;
         }
     }
 
@@ -152,6 +164,7 @@ public class RailRoadFitness : IFitness<TrainMovement>
         double lvRes = 0.0;
         double lvOpt = double.MaxValue;
         double lvTotalOpt = 0.0;
+        double lvTotalTime = 0.0;
         int lvCount = 0;
 
         try
@@ -169,32 +182,41 @@ public class RailRoadFitness : IFitness<TrainMovement>
                         lvFitnessElement.ValueWeight = lvGene.ValueWeight;
                         lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
 
-                        if (lvGene.StopLocation != null)
+                        if (lvGene.OptimumTime > DateTime.MinValue)
                         {
-                            if (lvGene.Direction > 0)
+                            if (lvGene.StopLocation != null)
                             {
-                                lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
+                                if (lvGene.Direction > 0)
+                                {
+                                    lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
+                                }
+                                else
+                                {
+                                    lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
+                                }
                             }
                             else
                             {
-                                lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
+                                if (lvGene.Direction > 0)
+                                {
+                                    lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
+                                }
+                                else
+                                {
+                                    lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
+                                }
                             }
+                            lvTotalOpt += lvOpt;
+                            //lvOpt = TrainIndividual.GetOptimum(lvGene);
+
+                            lvFitnessElement.Optimun = lvOpt;
+                            lvFitnessElement.HasMinTimeTarget = true;
                         }
                         else
                         {
-                            if (lvGene.Direction > 0)
-                            {
-                                lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
-                            }
-                            else
-                            {
-                                lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
-                            }
+                            lvFitnessElement.Optimun = (lvGene.OptimumTime - lvGene.Time).TotalHours;
+                            lvFitnessElement.HasMinTimeTarget = false;
                         }
-                        lvTotalOpt += lvOpt;
-                        //lvOpt = TrainIndividual.GetOptimum(lvGene);
-
-                        lvFitnessElement.Optimun = lvOpt;
 
                         lvDicTrainTime.Add(lvGene.TrainId, lvFitnessElement);
 
@@ -215,12 +237,27 @@ public class RailRoadFitness : IFitness<TrainMovement>
 
             foreach (FitnessElement lvFitnessElem in lvDicTrainTime.Values)
             {
+                lvTotalTime = (lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours;
                 if (lvFitnessElem.Optimun > 0)
                 {
-                    //lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun) / lvFitnessElem.Optimun;
-                    lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun);
+                    if (lvFitnessElement.HasMinTimeTarget)
+                    {
+                        //lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun) / lvFitnessElem.Optimun;
+                        lvRes += lvFitnessElem.ValueWeight * (lvTotalTime - lvFitnessElem.Optimun);
+                    }
+                    else
+                    {
+                        if(lvTotalTime < lvFitnessElem.Optimun)
+                        {
+                            lvRes += lvFitnessElem.ValueWeight * (lvFitnessElem.Optimun - lvTotalTime) * mOptEarlyPenalty;
+                        }
+                        else if(lvTotalTime > lvFitnessElem.Optimun)
+                        {
+                            lvRes += lvFitnessElem.ValueWeight * (lvTotalTime - lvFitnessElem.Optimun) * mOptDelayedPenalty;
+                        }
+                    }
 
-                    if (((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun) < 0)
+                    if ((lvTotalTime - lvFitnessElem.Optimun) < 0)
                     {
 #if DEBUG
                         DebugLog.Logar("RailRoadFitness => Trem: " + lvFitnessElem.TrainId);
@@ -324,6 +361,7 @@ public class RailRoadFitness : IFitness<TrainMovement>
         private DateTime mInitialTime = DateTime.MinValue;
         private DateTime mEndTime = DateTime.MinValue;
         private double mOptimun = 0.0;
+        private bool mHasMinTimeTarget;
         private double mValueWeight = 1.0;
         private Gene mCurrentGene = null;
         private StopLocation mCurrentStopLocation = null;
@@ -388,6 +426,19 @@ public class RailRoadFitness : IFitness<TrainMovement>
             set
             {
                 mCurrentGene = value;
+            }
+        }
+
+        public bool HasMinTimeTarget
+        {
+            get
+            {
+                return mHasMinTimeTarget;
+            }
+
+            set
+            {
+                mHasMinTimeTarget = value;
             }
         }
 
