@@ -413,24 +413,12 @@ public class TrainmovsegmentDataAccess
         Segment lvSegment;
         string lvStrUD = "";
         int lvLocation = Int32.MinValue;
-        int lvIndex;
 
         pOcupTime = DateTime.MinValue;
 
         DebugLog.Logar(" --------------------------------------------- GetHeadWayEnd(pTrainId = " + pTrainId + ", pLocation = " + pLocation + ", pStrUD = " + pStrUD + ", pDirection = " + pDirection + ", pDestTrack = " + pDestTrack + ") ------------------------------ ");
 
-        if (pDirection > 0)
-        {
-            lvSegment = Segment.GetCurrentSegment(pNextSegment.Start_coordinate, pDirection, pDestTrack, out lvIndex);
-        }
-        else if (pDirection < 0)
-        {
-            lvSegment = Segment.GetCurrentSegment(pNextSegment.End_coordinate, pDirection, pDestTrack, out lvIndex);
-        }
-        else
-        {
-            return DateTime.MinValue;
-        }
+        lvSegment = Segment.GetSegmentAt(pNextSegment.Start_coordinate, pDestTrack);
 
         lvRes = GetHeadWayEndTime(pTrainId, lvSegment.Location, lvSegment.SegmentValue, pDestTrack, out pOcupTime);
 

@@ -58,26 +58,37 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
         if (pOther == null) return -1;
 
-        if ((pOther.Start_coordinate >= this.Start_coordinate) && (pOther.End_coordinate <= this.End_coordinate))
+        if (pOther.Start_coordinate == this.Start_coordinate)
         {
-            if (this.Track > pOther.Track)
-            {
-                lvRes = 1;
-            }
-            else if (this.Track < pOther.Track)
+            if(this.End_coordinate < pOther.End_coordinate)
             {
                 lvRes = -1;
             }
+            else if (this.End_coordinate > pOther.End_coordinate)
+            {
+                lvRes = 1;
+            }
             else
             {
-                lvRes = 0;
+                if (this.Track > pOther.Track)
+                {
+                    lvRes = 1;
+                }
+                else if (this.Track < pOther.Track)
+                {
+                    lvRes = -1;
+                }
+                else
+                {
+                    lvRes = 0;
+                }
             }
         }
-        else if (this.Start_coordinate >= pOther.Start_coordinate)
+        else if (this.Start_coordinate > pOther.Start_coordinate)
         {
             lvRes = 1;
         }
-        else if (this.Start_coordinate <= pOther.Start_coordinate)
+        else if (this.Start_coordinate < pOther.Start_coordinate)
         {
             lvRes = -1;
         }
@@ -356,7 +367,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
             return null;
         }
 
-        lvCurrentSegment = Segment.GetCurrentSegment(pCoordinate, pDirection, 0, out lvSegIndex);
+        lvCurrentSegment = Segment.GetSegmentAt(pCoordinate, 1);
 
         if (lvCurrentSegment != null)
         {
@@ -420,15 +431,32 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         return lvResSegment;
     }
 
+    public static Segment GetSegmentAt(int pLocation, string pStrUD)
+    {
+        Segment lvRes = null;
+
+        foreach(Segment lvSeg in mListSegment)
+        {
+            if((lvSeg.Location == pLocation) && (lvSeg.SegmentValue.Equals(pStrUD)))
+            {
+                lvRes = lvSeg;
+                break;
+            }
+        }
+
+        return lvRes;
+    }
+
     public static Segment GetSegmentAt(int pCoordinate, int pLine, int pStart=0, int pEnd=Int32.MaxValue)
     {
         Segment lvRes = null;
         Segment lvSegment = null;
-        Segment lvAuxSegment = null;
         int lvMiddle;
-        int lvIndex = -1;
 
-        if (pStart > pEnd) return lvRes;
+        if (pStart > pEnd)
+        {
+            return lvRes;
+        }
 
         if(pEnd == Int32.MaxValue)
         {
@@ -440,56 +468,48 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
         if((pCoordinate >= lvSegment.Start_coordinate) && (pCoordinate <= lvSegment.End_coordinate))
         {
-            if(pLine == lvSegment.Track)
+            if((pLine == lvSegment.Track) || lvSegment.IsSwitch)
             {
                 lvRes = lvSegment;
             }
-            else 
+            else
             {
-                lvAuxSegment = lvSegment;
-
-                if (lvSegment.Track < pLine)
+                for(int i = lvMiddle-1; i>=0; i--)
                 {
-                    lvIndex = lvMiddle + 1;
-                }
-                else if(lvSegment.Track > pLine)
-                {
-                    lvIndex = lvMiddle - 1;
-                }
+                    lvSegment = mListSegment[i];
 
-                if (lvIndex <= pEnd)
-                {
-                    lvSegment = mListSegment[lvIndex];
-
-                    while (lvSegment.Track != pLine)
+                    if ((pCoordinate >= lvSegment.Start_coordinate) && (pCoordinate <= lvSegment.End_coordinate))
                     {
-                        if (lvSegment.Track < pLine)
+                        if((lvSegment.Track == pLine) || lvSegment.IsSwitch)
                         {
-                            lvIndex++;
-                        }
-                        else if (lvSegment.Track > pLine)
-                        {
-                            lvIndex--;
-                        }
-
-                        if (lvIndex > pEnd)
-                        {
+                            lvRes = lvSegment;
                             break;
                         }
-                        else
-                        {
-                            lvSegment = mListSegment[lvIndex];
+                    }
+                    else if(lvSegment.End_coordinate < pCoordinate)
+                    {
+                        break;
+                    }
+                }
 
-                            if((lvSegment.Start_coordinate != lvAuxSegment.Start_coordinate) && (lvSegment.Start_coordinate != lvAuxSegment.End_coordinate) && (lvSegment.End_coordinate != lvAuxSegment.Start_coordinate) && (lvSegment.End_coordinate != lvAuxSegment.End_coordinate))
+                if (lvRes == null)
+                {
+                    for (int i = lvMiddle + 1; i < mListSegment.Count; i++)
+                    {
+                        lvSegment = mListSegment[i];
+
+                        if ((pCoordinate >= lvSegment.Start_coordinate) && (pCoordinate <= lvSegment.End_coordinate))
+                        {
+                            if ((lvSegment.Track == pLine) || lvSegment.IsSwitch)
                             {
+                                lvRes = lvSegment;
                                 break;
                             }
                         }
-                    }
-
-                    if((lvSegment.Track == pLine) && ((lvSegment.Start_coordinate == lvAuxSegment.Start_coordinate) || (lvSegment.Start_coordinate == lvAuxSegment.End_coordinate) || (lvSegment.End_coordinate == lvAuxSegment.Start_coordinate) || (lvSegment.End_coordinate == lvAuxSegment.End_coordinate)))
-                    {
-                        lvRes = lvSegment;
+                        else if (lvSegment.Start_coordinate > pCoordinate)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -506,6 +526,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
         return lvRes;
     }
 
+    /*
     public static Segment GetCurrentSegment(int pCoordinate, int pDirection, int pLine, out int pSegIndex)
     {
         Segment lvSubSegment = new Segment();
@@ -602,6 +623,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
         return lvResSegment;
     }
+    */
 
     /*
         public static Segment GetCurrentSegment(int pCoordinate, int pDirection, int pLine, out int pSegIndex)

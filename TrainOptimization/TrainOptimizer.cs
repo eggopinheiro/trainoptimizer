@@ -586,9 +586,16 @@ namespace TrainOptimization
             {
                 lvGene = lvTrains[i];
 
-                lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
+                lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
 
-                lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+                if (lvGene.SegmentInstance != null)
+                {
+                    lvGene.StopLocation = lvGene.SegmentInstance.OwnerStopLocation;
+                }
+                else
+                {
+                    lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+                }
 
                 lvStartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
                 if (lvStartStopLocation == null)
@@ -666,12 +673,15 @@ namespace TrainOptimization
                     lvGene.EndStopLocation = StopLocation.GetNextStopSegment(lvGene.End, lvGene.Direction);
                 }
 
-                lvSegment = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, 1, out lvIndex);
-
-                lvGene.SegmentInstance = lvSegment;
-                lvGene.Track = lvGene.SegmentInstance.Track;
-
                 lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+
+                if (lvGene.StopLocation != null)
+                {
+                    lvSegment = lvGene.StopLocation.GetSegment(lvGene.Direction, lvGene.Track);
+                    lvGene.SegmentInstance = lvSegment;
+                    lvGene.Track = lvGene.SegmentInstance.Track;
+                }
+
 
                 DebugLog.Logar(lvGene.ToString());
             }

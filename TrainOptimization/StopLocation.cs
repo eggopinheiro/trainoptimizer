@@ -606,7 +606,10 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                             if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
                             {
                                 lvSegment.IsSwitch = false;
-                                lvSegment.OwnerStopLocation = lvStopLocation;
+                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                {
+                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                }
                             }
                             else
                             {
@@ -619,7 +622,10 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
 
                             if (lvSegment.Start_coordinate >= lvStopLocation.Start_coordinate)
                             {
-                                lvSegment.OwnerStopLocation = lvStopLocation;
+                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                {
+                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                }
                             }
                         }
                     }
@@ -634,7 +640,10 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                             if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
                             {
                                 lvSegment.IsSwitch = false;
-                                lvSegment.OwnerStopLocation = lvStopLocation;
+                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                {
+                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                }
                             }
                             else
                             {
@@ -659,7 +668,10 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
 
                             if (lvSegment.End_coordinate <= lvStopLocation.End_coordinate)
                             {
-                                lvSegment.OwnerStopLocation = lvStopLocation;
+                                if (lvSegment.Track <= lvStopLocation.Capacity)
+                                {
+                                    lvSegment.OwnerStopLocation = lvStopLocation;
+                                }
                             }
                         }
                     }

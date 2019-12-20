@@ -1630,6 +1630,21 @@ public class Population
                     //lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
                     lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
 
+                    if(lvGene.SegmentInstance == null)
+                    {
+                        lvGene.SegmentInstance = Segment.GetSegmentAt(lvLocation, lvStrUD);
+                    }
+
+                    if(lvGene.SegmentInstance == null)
+                    {
+                        continue;
+                    }
+                    else if((lvGene.SegmentInstance.OwnerStopLocation == null) && lvGene.SegmentInstance.Track != 1)
+                    {
+                        /* Para entrar na linha tronco deveria fazer por Stop Location, caso a stop location para ele não tenha sido definida o trem deve ser ignorado */
+                        continue;
+                    }
+
                     if (lvGene.DepartureTime.AddYears(1) < lvCreationtime)
                     {
                         lvGene.DepartureTime = lvCreationtime;
@@ -1860,14 +1875,14 @@ public class Population
                         }
                         lvGene.EndStopLocation = lvEndStopLocation;
 
-                        lvSegment = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, 1, out lvIndex);
+                        lvSegment = Segment.GetSegmentAt(lvGene.Coordinate, 1);
 
                         if (lvSegment != null)
                         {
                             lvGene.SegmentInstance = lvSegment;
                             lvGene.Track = 1;
 
-                            lvCurrentStopSegment = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+                            lvCurrentStopSegment = lvSegment.OwnerStopLocation;
 
                             if (lvCurrentStopSegment == null)
                             {
@@ -1877,6 +1892,20 @@ public class Population
                         }
                         else
                         {
+                            lvCurrentStopSegment = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+
+                            if (lvCurrentStopSegment == null)
+                            {
+                                lvCurrentStopSegment = StopLocation.GetNextStopSegment(lvGene.Coordinate, lvGene.Direction);
+                            }
+                            lvGene.StopLocation = lvCurrentStopSegment;
+
+                            if (lvGene.StopLocation != null)
+                            {
+                                lvGene.SegmentInstance = lvGene.StopLocation.GetSegment(lvGene.Direction, 1);
+                                lvGene.Track = 1;
+                            }
+
                             DebugLog.Logar("Não tem segment !", pIndet: TrainIndividual.IDLog);
                         }
 
