@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 class Cluster : IComparable<Cluster>
 {
-    private IIndividual<Gene> mCenter = null;
+    private IIndividual<TrainMovement> mCenter = null;
     private int mRadius = 0;
     private int mMinRadius = 0;
     private int mUniqueId = -1;
@@ -70,7 +70,7 @@ class Cluster : IComparable<Cluster>
         mValue *= mCoolingFactor;
     }
 
-    public bool InsideCluster(IIndividual<Gene> pIndividual)
+    public bool InsideCluster(IIndividual<TrainMovement> pIndividual)
     {
         bool lvRes = false;
 
@@ -102,7 +102,7 @@ class Cluster : IComparable<Cluster>
         }
     }
 
-    public IIndividual<Gene> Center
+    public IIndividual<TrainMovement> Center
     {
         get
         {

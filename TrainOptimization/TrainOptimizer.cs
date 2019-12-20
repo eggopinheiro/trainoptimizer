@@ -125,43 +125,13 @@ namespace TrainOptimization
             }
         }
 
-        private void LoadPriority(string pStrPriority, Dictionary<string, int> pPriority)
-        {
-            string[] lvVarElement;
-            string lvStrTrainType = "";
-            int lvDirection = 0;
-            int lvValue = 0;
-            string lvKey;
-            string[] lvVarPriority = pStrPriority.Split('|');
-
-            foreach (string lvPriority in lvVarPriority)
-            {
-                lvVarElement = lvPriority.Split(':');
-
-                if (lvVarPriority.Length >= 3)
-                {
-                    lvStrTrainType = lvVarPriority[0];
-                    lvDirection = Int32.Parse(lvVarPriority[1]);
-                    lvValue = Int32.Parse(lvVarPriority[2]);
-
-                    lvKey = lvStrTrainType + lvVarPriority[1];
-
-                    if (!pPriority.ContainsKey(lvKey))
-                    {
-                        pPriority.Add(lvKey, lvValue);
-                    }
-                }
-            }
-        }
-
         private void ProcessRailWay(string pStrFile)
         {
             string lvStrTrainAllowed = "";
             int lvPopulationSize = 0;
             int lvMaxGenerations = 0;
             int lvMutationRate = 0;
-            Dictionary<string, double> lvPriority = null;
-            IFitness<Gene> lvFitness = null;
+            IFitness<TrainMovement> lvFitness = null;
             Population lvPopulation = null;
             TrainIndividual lvGeneIndividual = null;
             bool lvLogEnable;
@@ -172,13 +142,14 @@ namespace TrainOptimization
             int lvMaxDeadLockError = 0;
             int lvMaxParallelThreads = 1;
             double lvNicheDistance = 0.0;
+            TrainMovement lvTrainMovement = null;
             List<StopLocation> lvStopLocations = new List<StopLocation>();
             List<Segment> lvSegments = new List<Segment>();
             List<Segment> lvSwitches = new List<Segment>();
-            List<Gene> lvTrains = new List<Gene>();
-            List<Gene> lvPlans = new List<Gene>();
-            List<Gene> lvTrainsData = null;
-            List<Gene> lvPlansData = null;
+            List<TrainMovement> lvTrainMovList = new List<TrainMovement>();
+            List<TrainMovement> lvPlans = new List<TrainMovement>();
+            List<TrainMovement> lvTrainsData = null;
+            List<TrainMovement> lvPlansData = null;
             Segment lvSegment = null;
             StopLocation lvStartStopLocation = null;
             StopLocation lvEndStopLocation = null;
@@ -192,7 +163,6 @@ namespace TrainOptimization
             int lvLocation = -1;
             double lvThreshold;
             Int64 lvTrainId;
-            string lvStrKey = "";
             string lvStrUD = "";
             string lvStrFileName = "";
             int lvTestCount = 1;
@@ -284,7 +254,6 @@ namespace TrainOptimization
             XmlReader lvXmlReader = XmlReader.Create(pStrFile);
 
             Population.LoadPriority(mTrainPriority);
-            lvPriority = Population.Priority;
 
             lvIndex = 0;
             while (lvXmlReader.Read())
@@ -409,17 +378,12 @@ namespace TrainOptimization
 
                             lvGene.Speed = 0.0;
                             lvGene.State = Gene.STATE.IN;
+                            lvGene.ValueWeight = Population.GetPriority(lvGene);
 
-                            if (lvPriority.Keys.Count > 0)
-                            {
-                                lvStrKey = lvGene.TrainName.Substring(0, 1) + lvGene.Direction;
-                                if (lvPriority.ContainsKey(lvStrKey))
-                                {
-                                    lvGene.ValueWeight = lvPriority[lvStrKey];
-                                }
-                            }
+                            lvTrainMovement = new TrainMovement();
+                            lvTrainMovement.Add(lvGene);
 
-                            lvTrains.Add(lvGene);
+                            lvTrainMovList.Add(lvTrainMovement);
 
                             break;
                         case "Plan":
@@ -455,20 +419,24 @@ namespace TrainOptimization
                                 lvGene.Direction = Convert.ToInt16(lvXmlReader["direction"]);
                             }
 
+                            if (lvXmlReader["track"] != null)
+                            {
+                                lvGene.Track = Convert.ToInt16(lvXmlReader["track"]);
+                            }
+                            else
+                            {
+                                lvGene.Track = 1;
+                            }
+
                             lvGene.Time = DateTime.MinValue;
                             lvGene.Coordinate = lvGene.Start;
                             lvGene.Speed = 0.0;
+                            lvGene.ValueWeight = Population.GetPriority(lvGene);
 
-                            if (lvPriority.Keys.Count > 0)
-                            {
-                                lvStrKey = lvGene.TrainName.Substring(0, 1) + lvGene.Direction;
-                                if (lvPriority.ContainsKey(lvStrKey))
-                                {
-                                    lvGene.ValueWeight = lvPriority[lvStrKey];
-                                }
-                            }
+                            lvTrainMovement = new TrainMovement();
+                            lvTrainMovement.Add(lvGene);
 
-                            lvPlans.Add(lvGene);
+                            lvPlans.Add(lvTrainMovement);
 
                             break;
                         case "Interdiction":
@@ -582,9 +550,9 @@ namespace TrainOptimization
             StopLocation.LoadList(pStrFile);
             Segment.LoadStopLocations(StopLocation.GetList());
 
-            for (int i = 0; i < lvTrains.Count; i++)
+            for (int i = 0; i < lvTrainMovList.Count; i++)
             {
-                lvGene = lvTrains[i];
+                lvGene = lvTrainMovList[i].Last;
 
                 lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
 
@@ -624,13 +592,13 @@ namespace TrainOptimization
 
                 if (lvNextStopLocation == null)
                 {
-                    lvTrains.RemoveAt(i);
+                    lvTrainMovList.RemoveAt(i);
                     i--;
                     continue;
                 }
                 else if ((lvGene.StopLocation == lvEndStopLocation) && (lvGene.StopLocation != null))
                 {
-                    lvTrains.RemoveAt(i);
+                    lvTrainMovList.RemoveAt(i);
                     i--;
                     continue;
                 }
@@ -640,7 +608,7 @@ namespace TrainOptimization
                     {
                         if (lvGene.Coordinate >= lvEndStopLocation.Start_coordinate)
                         {
-                            lvTrains.RemoveAt(i);
+                            lvTrainMovList.RemoveAt(i);
                             i--;
                             continue;
                         }
@@ -649,7 +617,7 @@ namespace TrainOptimization
                     {
                         if (lvGene.Coordinate <= lvEndStopLocation.End_coordinate)
                         {
-                            lvTrains.RemoveAt(i);
+                            lvTrainMovList.RemoveAt(i);
                             i--;
                             continue;
                         }
@@ -659,7 +627,7 @@ namespace TrainOptimization
 
             for (int i = 0; i < lvPlans.Count; i++)
             {
-                lvGene = lvPlans[i];
+                lvGene = lvPlans[i].Last;
 
                 lvGene.StartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
                 if (lvGene.StartStopLocation == null)
@@ -697,21 +665,9 @@ namespace TrainOptimization
                     DebugLog.LogPath = lvStrInitialLogPath + lvStrFileName + "\\Test_" + (lvTestInd + 1) + "\\";
                     System.IO.Directory.CreateDirectory(DebugLog.LogPath);
 
-                    lvTrainsData = new List<Gene>();
-                    foreach(Gene lvGen in lvTrains)
-                    {
-                        lvGene = lvGen.Clone();
-                        lvTrainsData.Add(lvGene);
-                        lvGene = null;
-                    }
+                    lvTrainsData = new List<TrainMovement>(lvTrainMovList);
 
-                    lvPlansData = new List<Gene>();
-                    foreach (Gene lvGen in lvPlans)
-                    {
-                        lvGene = (Gene)lvGen.Clone();
-                        lvPlansData.Add(lvGene);
-                        lvGene = null;
-                    }
+                    lvPlansData = new List<TrainMovement>(lvPlans);
 
                     try
                     {
@@ -727,36 +683,7 @@ namespace TrainOptimization
                         DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
                     }
 
-                    if (lvStrMode.Equals("bnb"))
-                    {
-                        IIndividual<Gene> lvIndividual = new TrainIndividual(lvFitness, mFinalDate, lvTrainsData, lvPATs, null);
-
-                        lvGeneIndividual = (TrainIndividual)lvIndividual;
-
-                        //DebugLog.Logar("Melhor Inicial = " + lvPopulation.GetIndividualAt(0).ToString(), false);
-                        //DebugLog.Logar("Melhor Inicial = " + ((TrainIndividual)lvPopulation.GetIndividualAt(0)).ToStringAnalyse(), false);
-
-                        lvGeneIndividual.BranchAndBound(lvIndividual, lvTrainsData, lvPlansData);
-                        //lvGeneIndividual.BranchAndBound(lvPopulation.GetIndividualAt(0), lvTrainsData, lvPlansData);
-
-                        if (lvGeneIndividual != null)
-                        {
-                            DebugLog.EnableDebug = true;
-                            DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
-                            DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
-
-                            lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-
-                            DebugLog.Logar("Melhor Fitness do BaB = " + lvFitness.GetFitness(lvGeneIndividual.GetGenes()), false);
-
-                            //DebugLog.Logar("Melhor Flot = " + lvGeneIndividual.GetFlotSeries(), false);
-
-                            //lvGeneIndividual.Serialize();
-                            DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
-                            DebugLog.EnableDebug = lvLogEnable;
-                        }
-                    }
-                    else if(lvStrMode.Equals("multstart"))
+                    if(lvStrMode.Equals("multstart"))
                     {
                         lvPopulation.LocalSearchAll();
 
@@ -905,7 +832,7 @@ namespace TrainOptimization
             else
             {
                 Population.LoadPriority(mTrainPriority);
-                lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrains, lvPlans);
+                lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrainMovList, lvPlans);
                 lvPopulation.NicheDistance = lvNicheDistance;
 
                 TrainIndividual.IDLog = 0;
@@ -933,9 +860,6 @@ namespace TrainOptimization
                 {
                     DebugLog.EnableDebug = true;
                     DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
-                    DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
-
-                    DebugLog.Logar("Melhor Fitness = " + lvFitness.GetFitness(lvGeneIndividual.GetGenes()), false);
 
                     lvPopulation.SaveBestIndividuals();
                     //lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
@@ -989,7 +913,7 @@ namespace TrainOptimization
             int lvPopulationSize = 0;
             int lvMaxGenerations = 0;
             int lvMutationRate = 0;
-            IFitness<Gene> lvFitness = null;
+            IFitness<TrainMovement> lvFitness = null;
             Population lvPopulation = null;
             TrainIndividual lvGeneIndividual = null;
             bool lvLogEnable;

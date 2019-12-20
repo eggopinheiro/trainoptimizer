@@ -25,6 +25,7 @@ public class Gene : IEquatable<Gene>
     private StopLocation mEndStopLocation = null;
     private DateTime mDepartureTime = DateTime.MinValue;
     private DateTime mHeadWayTime = DateTime.MinValue;
+    private DateTime mOptimumTime = DateTime.MinValue;
     private double mSpeed = 0.0;
     private double mValueWeight = 1.0;
     private STATE mState = STATE.UNDEF;
@@ -58,7 +59,7 @@ public class Gene : IEquatable<Gene>
             return false;
         }
 
-        if ((obj1.mTrainId == obj2.mTrainId) && (obj1.mStopLocation == obj2.mStopLocation))
+        if ((obj1.mTrainId == obj2.mTrainId) && (obj1.mStopLocation == obj2.mStopLocation) && (obj1.State == obj2.State))
         {
             lvRes = true;
         }
@@ -115,6 +116,11 @@ public class Gene : IEquatable<Gene>
 
     public override int GetHashCode()
     {
+        if (mId == 0)
+        {
+            LoadId();
+        }
+
         return mId;
     }
 
@@ -264,6 +270,19 @@ public class Gene : IEquatable<Gene>
         }
     }
 
+    public DateTime OptimumTime
+    {
+        get
+        {
+            return mOptimumTime;
+        }
+
+        set
+        {
+            mOptimumTime = value;
+        }
+    }
+
     public Gene Clone()
     {
         Gene lvRes = new Gene();
@@ -286,6 +305,7 @@ public class Gene : IEquatable<Gene>
         lvRes.mSpeed = mSpeed;
         lvRes.mValueWeight = mValueWeight;
         lvRes.mState = mState;
+        lvRes.mOptimumTime = mOptimumTime;
 
         //return this.MemberwiseClone();
         return lvRes;

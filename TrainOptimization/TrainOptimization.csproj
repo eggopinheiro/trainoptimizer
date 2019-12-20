@@ -87,6 +87,7 @@
     <Compile Include="Train.cs" />
     <Compile Include="TrainDataAccess.cs" />
     <Compile Include="TrainIndividual.cs" />
+    <Compile Include="TrainMovement.cs" />
     <Compile Include="Trainmovsegment.cs" />
     <Compile Include="TrainmovsegmentDataAccess.cs" />
     <Compile Include="TrainOptimizer.cs">

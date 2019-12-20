@@ -6,7 +6,7 @@ using System.Configuration;
 /// <summary>
 /// Summary description for RailRoadFitness
 /// </summary>
-public class RailRoadFitness : IFitness<Gene>
+public class RailRoadFitness : IFitness<TrainMovement>
 {
     private double mVMA = 80.0;
     private int mFitnessCallNum = 0;
@@ -34,11 +34,11 @@ public class RailRoadFitness : IFitness<Gene>
         }
         else
         {
-            mFunctionCallReg = mFunctionCallReg;
+            mFunctionCallReg = pFunctionCallReg;
         }
     }
 
-    public double GetFitness(IIndividual<Gene> pIndividual)
+    public double GetFitness(IIndividual<TrainMovement> pIndividual)
     {
         double lvRes = 0.0;
 
@@ -92,7 +92,7 @@ public class RailRoadFitness : IFitness<Gene>
         return lvRes;
     }
 
-    public double GetFitnessTHP(IIndividual<Gene> pIndividual)
+    public double GetFitnessTHP(IIndividual<TrainMovement> pIndividual)
     {
         Dictionary<Int64, DateTime> lvDicTrainTime = new Dictionary<Int64, DateTime>();
         Gene lvGene = null;
@@ -101,29 +101,32 @@ public class RailRoadFitness : IFitness<Gene>
 
         try
         {
-            for (int i = 0; i < pIndividual.Count; i++)
+            foreach (TrainMovement lvTrainMov in pIndividual)
             {
-                lvGene = pIndividual[i];
+                for (int i = 0; i < lvTrainMov.Count; i++)
+                {
+                    lvGene = lvTrainMov[i];
 
-                if (lvGene.State == Gene.STATE.IN)
-                {
-                    if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
+                    if (lvGene.State == Gene.STATE.IN)
                     {
-                        lvDicTrainTime.Add(lvGene.TrainId, lvGene.HeadWayTime);
-                    }
-                    else
-                    {
-                        lvDicTrainTime[lvGene.TrainId] = lvGene.HeadWayTime;
-                    }
-                }
-                else if (lvGene.State == Gene.STATE.OUT)
-                {
-                    if (lvDicTrainTime.ContainsKey(lvGene.TrainId))
-                    {
-                        lvElapsedTime = (lvGene.HeadWayTime - lvDicTrainTime[lvGene.TrainId]).TotalHours;
-                        if (lvElapsedTime > 0)
+                        if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
                         {
-                            lvRes += lvGene.ValueWeight * Math.Pow(2.0, lvElapsedTime);
+                            lvDicTrainTime.Add(lvGene.TrainId, lvGene.HeadWayTime);
+                        }
+                        else
+                        {
+                            lvDicTrainTime[lvGene.TrainId] = lvGene.HeadWayTime;
+                        }
+                    }
+                    else if (lvGene.State == Gene.STATE.OUT)
+                    {
+                        if (lvDicTrainTime.ContainsKey(lvGene.TrainId))
+                        {
+                            lvElapsedTime = (lvGene.HeadWayTime - lvDicTrainTime[lvGene.TrainId]).TotalHours;
+                            if (lvElapsedTime > 0)
+                            {
+                                lvRes += lvGene.ValueWeight * Math.Pow(2.0, lvElapsedTime);
+                            }
                         }
                     }
                 }
@@ -142,10 +145,9 @@ public class RailRoadFitness : IFitness<Gene>
         return lvRes;
     }
 
-    public double GetFitnessTT(IIndividual<Gene> pIndividual)
+    public double GetFitnessTT(IIndividual<TrainMovement> pIndividual)
     {
         Dictionary<Int64, FitnessElement> lvDicTrainTime = new Dictionary<Int64, FitnessElement>();
-        Gene lvGene = null;
         FitnessElement lvFitnessElement = null;
         double lvRes = 0.0;
         double lvOpt = double.MaxValue;
@@ -154,58 +156,59 @@ public class RailRoadFitness : IFitness<Gene>
 
         try
         {
-            for (int i = 0; i < pIndividual.Count; i++)
+            foreach (TrainMovement lvTrainMov in pIndividual)
             {
-                lvGene = pIndividual[i];
-
-                if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
+                foreach(Gene lvGene in lvTrainMov)
                 {
-                    lvFitnessElement = new FitnessElement();
-
-                    lvFitnessElement.TrainId = lvGene.TrainId;
-                    lvFitnessElement.InitialTime = lvGene.Time;
-                    lvFitnessElement.ValueWeight = lvGene.ValueWeight;
-                    lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
-
-                    if (lvGene.StopLocation != null)
+                    if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
                     {
-                        if (lvGene.Direction > 0)
+                        lvFitnessElement = new FitnessElement();
+
+                        lvFitnessElement.TrainId = lvGene.TrainId;
+                        lvFitnessElement.InitialTime = lvGene.Time;
+                        lvFitnessElement.ValueWeight = lvGene.ValueWeight;
+                        lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
+
+                        if (lvGene.StopLocation != null)
                         {
-                            lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
+                            if (lvGene.Direction > 0)
+                            {
+                                lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
+                            }
+                            else
+                            {
+                                lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
+                            }
                         }
                         else
                         {
-                            lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
+                            if (lvGene.Direction > 0)
+                            {
+                                lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
+                            }
+                            else
+                            {
+                                lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
+                            }
                         }
+                        lvTotalOpt += lvOpt;
+                        //lvOpt = TrainIndividual.GetOptimum(lvGene);
+
+                        lvFitnessElement.Optimun = lvOpt;
+
+                        lvDicTrainTime.Add(lvGene.TrainId, lvFitnessElement);
+
+                        lvFitnessElement = null;
                     }
                     else
                     {
-                        if (lvGene.Direction > 0)
+                        lvFitnessElement = lvDicTrainTime[lvGene.TrainId];
+                        if (lvGene.Time > lvFitnessElement.EndTime)
                         {
-                            lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
+                            lvFitnessElement.EndTime = lvGene.Time;
+                            lvFitnessElement.CurrentStopLocation = lvGene.StopLocation;
+                            lvFitnessElement.CurrentGene = lvGene;
                         }
-                        else
-                        {
-                            lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.Coordinate) / 100000.0) / mVMA;
-                        }
-                    }
-                    lvTotalOpt += lvOpt;
-                    //lvOpt = TrainIndividual.GetOptimum(lvGene);
-
-                    lvFitnessElement.Optimun = lvOpt;
-
-                    lvDicTrainTime.Add(lvGene.TrainId, lvFitnessElement);
-
-                    lvFitnessElement = null;
-                }
-                else
-                {
-                    lvFitnessElement = lvDicTrainTime[lvGene.TrainId];
-                    if (lvGene.Time > lvFitnessElement.EndTime)
-                    {
-                        lvFitnessElement.EndTime = lvGene.Time;
-                        lvFitnessElement.CurrentStopLocation = lvGene.StopLocation;
-                        lvFitnessElement.CurrentGene = lvGene;
                     }
                 }
             }
@@ -250,198 +253,6 @@ public class RailRoadFitness : IFitness<Gene>
         catch (Exception ex)
         {
             DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
-        }
-
-        return lvRes;
-    }
-
-    public double GetMostDelayedStochastic(IIndividual<Gene> pIndividual)
-    {
-        Dictionary<Int64, FitnessElement> lvDicTrainTime = new Dictionary<Int64, FitnessElement>();
-        Gene lvGene = null;
-        FitnessElement lvFitnessElement = null;
-        int lvSeed = DateTime.Now.Millisecond;
-        Random lvRandom = new Random(lvSeed);
-        double lvIndValue = 0.0;
-        double lvRandomValue;
-        double lvTotalValue = 0.0;
-        double lvRes = 0.0;
-
-        for (int i = 0; i < pIndividual.Count; i++)
-        {
-            lvGene = pIndividual[i];
-
-            if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
-            {
-                lvFitnessElement = new FitnessElement();
-
-                lvFitnessElement.TrainId = lvGene.TrainId;
-                lvFitnessElement.InitialTime = lvGene.Time;
-                lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
-
-                lvDicTrainTime.Add(lvGene.TrainId, lvFitnessElement);
-
-                lvFitnessElement = null;
-            }
-            else
-            {
-                lvFitnessElement = lvDicTrainTime[lvGene.TrainId];
-                if (lvGene.Time > lvFitnessElement.EndTime)
-                {
-                    lvFitnessElement.EndTime = lvGene.Time;
-                }
-            }
-        }
-
-        lvTotalValue = 0.0;
-        foreach (FitnessElement lvFitnessElem in lvDicTrainTime.Values)
-        {
-            lvTotalValue += (lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours;
-        }
-
-        lvRandomValue = lvRandom.NextDouble() * lvTotalValue;
-
-        lvIndValue = 0.0;
-        foreach (FitnessElement lvFitnessElem in lvDicTrainTime.Values)
-        {
-            lvIndValue += (lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours;
-
-            if (lvIndValue >= lvRandomValue)
-            {
-                lvRes = lvFitnessElem.TrainId;
-                break;
-            }
-        }
-
-        return lvRes;
-    }
-
-    public double GetFitness(List<Gene> pGenes)
-    {
-        double lvRes = 0.0;
-
-        switch (mType)
-        {
-            case "TT":
-                lvRes = GetFitnessTT(pGenes);
-                break;
-            case "THP":
-                lvRes = GetFitnessTHP(pGenes);
-                break;
-            default:
-                lvRes = GetFitnessTT(pGenes);
-                break;
-        }
-
-        return lvRes;
-    }
-
-    public double GetFitnessTHP(List<Gene> pGenes)
-    {
-        double lvRes = 0.0;
-
-        return lvRes;
-    }
-
-    public double GetFitnessTT(List<Gene> pGenes)
-    {
-        Dictionary<Int64, FitnessElement> lvDicTrainTime = new Dictionary<Int64, FitnessElement>();
-        FitnessElement lvFitnessElement = null;
-        double lvRes = 0.0;
-        double lvOpt = double.MaxValue;
-        int lvCount = 0;
-
-        foreach(Gene lvGene in pGenes)
-        {
-            if (!lvDicTrainTime.ContainsKey(lvGene.TrainId))
-            {
-                lvFitnessElement = new FitnessElement();
-
-                lvFitnessElement.TrainId = lvGene.TrainId;
-                lvFitnessElement.InitialTime = lvGene.Time;
-                lvFitnessElement.ValueWeight = lvGene.ValueWeight;
-                lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
-
-                if (lvGene.StopLocation != null)
-                {
-                    if (lvGene.Direction > 0)
-                    {
-                        lvOpt = (Math.Abs(lvGene.EndStopLocation.Start_coordinate - lvGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
-                    }
-                    else
-                    {
-                        lvOpt = (Math.Abs(lvGene.EndStopLocation.End_coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
-                    }
-                }
-                else
-                {
-                    lvOpt = (Math.Abs(lvGene.Coordinate - lvGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
-                }
-                //lvOpt = TrainIndividual.GetOptimum(lvGene);
-
-                lvFitnessElement.Optimun = lvOpt;
-
-                lvDicTrainTime.Add(lvGene.TrainId, lvFitnessElement);
-
-                lvFitnessElement = null;
-            }
-            else
-            {
-                lvFitnessElement = lvDicTrainTime[lvGene.TrainId];
-                if (lvGene.Time > lvFitnessElement.EndTime)
-                {
-                    lvFitnessElement.EndTime = lvGene.Time;
-                    lvFitnessElement.CurrentStopLocation = lvGene.StopLocation;
-                    lvFitnessElement.CurrentGene = lvGene;
-                }
-            }
-        }
-
-        foreach (FitnessElement lvFitnessElem in lvDicTrainTime.Values)
-        {
-            if (lvFitnessElem.CurrentStopLocation != lvFitnessElem.EndStopLocation)
-            {
-                if (lvFitnessElem.CurrentGene.StopLocation != null)
-                {
-                    if (lvFitnessElem.CurrentGene.Direction > 0)
-                    {
-                        lvOpt = (Math.Abs(lvFitnessElem.CurrentGene.EndStopLocation.Start_coordinate - lvFitnessElem.CurrentGene.StopLocation.End_coordinate) / 100000.0) / mVMA;
-                    }
-                    else
-                    {
-                        lvOpt = (Math.Abs(lvFitnessElem.CurrentGene.EndStopLocation.End_coordinate - lvFitnessElem.CurrentGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
-                    }
-                }
-                else
-                {
-                    lvOpt = (Math.Abs(lvFitnessElem.CurrentGene.Coordinate - lvFitnessElem.CurrentGene.StopLocation.Start_coordinate) / 100000.0) / mVMA;
-                }
-                lvFitnessElem.EndTime = lvFitnessElem.CurrentGene.Time.AddHours(lvOpt);
-            }
-
-            if (lvFitnessElem.Optimun > 0)
-            {
-                //lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun) / lvFitnessElem.Optimun;
-                lvRes += lvFitnessElem.ValueWeight * ((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun);
-
-                if (((lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours - lvFitnessElem.Optimun) < 0)
-                {
-#if DEBUG
-                    DebugLog.Logar("(lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours = " + (lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours, false, pIndet: TrainIndividual.IDLog);
-                    DebugLog.Logar("lvFitnessElem.Optimun = " + lvFitnessElem.Optimun, false, pIndet: TrainIndividual.IDLog);
-                    //TrainIndividual.Dump(pGenes, lvFitnessElem.TrainId);
-#endif
-                    lvRes += (lvFitnessElem.Optimun * 1000);
-                }
-                lvCount++;
-            }
-        }
-
-        lvRes = lvRes / lvCount;
-
-        if (lvRes < 0)
-        {
-            lvRes = Double.MaxValue;
         }
 
         return lvRes;
