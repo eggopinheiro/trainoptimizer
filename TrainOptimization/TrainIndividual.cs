@@ -294,10 +294,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                     lvListGeneStopLocation.Add(lvGene.TrainId);
                                 }
                             }
-                            else
-                            {
-                                DebugLog.Logar("TrainIndividual.AddElements(UniqueId: " + mUniqueId + ") => Problema em AddElements", false, pIndet: TrainIndividual.IDLog);
-                            }
                         }
 
                         if (mDicTrain.ContainsKey(lvTrainMovement.Last.TrainId))
@@ -1448,8 +1444,12 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
     public bool Save()
     {
         bool lvRes = false;
-        double lvPosition = 0.0;
-        long lvUTCTime = 0l;
+        double lvPositionArrival = 0.0;
+        double lvPositionDeparture = 0.0;
+        long lvUTCTimeArrival = 0l;
+        long lvUTCTimeDeparture = 0l;
+        Gene lvArrivalGene = null;
+        Dictionary<Int64, Gene> lvStopLocationMap = new Dictionary<long, Gene>();
 
         ConnectionManager.CloseConnection();
         ConnectionManager.HasTransaction = true;
@@ -1460,18 +1460,48 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         {
             foreach (Gene lvGene in lvTrainMov)
             {
-                if (lvGene.StopLocation != null)
+                if((lvGene.State == Gene.STATE.IN) && (lvGene.StopLocation != null) && (lvGene.EndStopLocation != null) && (lvGene.StopLocation != lvGene.EndStopLocation))
                 {
-                    lvPosition = (double)lvGene.StopLocation.Location / 100000.0;
+                    if(!lvStopLocationMap.ContainsKey(lvGene.TrainId))
+                    {
+                        lvStopLocationMap.Add(lvGene.TrainId, lvGene);
+                    }
+                    else
+                    {
+                        lvStopLocationMap[lvGene.TrainId] = lvGene;
+                    }
                 }
                 else
                 {
-                    lvPosition = (double)lvGene.Coordinate / 100000.0;
-                }
+                    if(lvStopLocationMap.ContainsKey(lvGene.TrainId))
+                    {
+                        lvArrivalGene = lvStopLocationMap[lvGene.TrainId];
+                    }
 
-                //lvUTCTime = lvGene.HeadWayTime == DateTime.MinValue ? ConnectionManager.GetUTCDateTime(lvGene.Time) : ConnectionManager.GetUTCDateTime(lvGene.HeadWayTime);
-                lvUTCTime = ConnectionManager.GetUTCDateTime(lvGene.Time);
-                PlanOptDataAccess.Insert(lvGene.TrainId, lvGene.TrainName, lvUTCTime, lvPosition, lvGene.Track, SegmentDataAccess.Branch);
+                    lvPositionDeparture = (double)lvGene.Coordinate / 100000.0;
+
+                    //lvUTCTime = lvGene.HeadWayTime == DateTime.MinValue ? ConnectionManager.GetUTCDateTime(lvGene.Time) : ConnectionManager.GetUTCDateTime(lvGene.HeadWayTime);
+                    lvUTCTimeDeparture = ConnectionManager.GetUTCDateTime(lvGene.Time);
+
+                    if ((lvArrivalGene != null) && (lvArrivalGene.StopLocation != null) && (lvGene.StopLocation != null) && (lvArrivalGene.StopLocation.Location == lvGene.StopLocation.Location))
+                    {
+                        lvPositionArrival = (double)lvArrivalGene.Coordinate / 100000.0;
+                        lvUTCTimeArrival = ConnectionManager.GetUTCDateTime(lvArrivalGene.Time);
+
+                        PlanOptDataAccess.Insert(lvGene.TrainId, lvGene.TrainName, lvUTCTimeArrival, lvPositionArrival, lvGene.Track, SegmentDataAccess.Branch, lvGene.StopLocation.Location, lvUTCTimeDeparture, lvPositionDeparture);
+                    }
+                    else
+                    {
+                        if (lvGene.StopLocation != null)
+                        {
+                            PlanOptDataAccess.Insert(lvGene.TrainId, lvGene.TrainName, lvUTCTimeDeparture, lvPositionDeparture, lvGene.Track, SegmentDataAccess.Branch, lvGene.StopLocation.Location);
+                        }
+                        else
+                        {
+                            PlanOptDataAccess.Insert(lvGene.TrainId, lvGene.TrainName, lvUTCTimeDeparture, lvPositionDeparture, lvGene.Track, SegmentDataAccess.Branch);
+                        }
+                    }
+                }
             }
         }
 
@@ -6862,7 +6892,47 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         }
         else if (lvRes < mMinSpeedLimit)
         {
+#if DEBUG
+            if (DebugLog.EnableDebug)
+            {
+                StringBuilder lvStrInfo = new StringBuilder();
+
+                lvStrInfo.Clear();
+                lvStrInfo.Append("pSpentTime muito curto(");
+                lvStrInfo.Append(pSpentTime);
+                lvStrInfo.Append(") entre ");
+
+                if (pGene.StopLocation != null)
+                {
+                    lvStrInfo.Append(pGene.StopLocation.Location);
+                }
+                else
+                {
+                    lvStrInfo.Append(pGene.SegmentInstance.Location);
+                    lvStrInfo.Append(".");
+                    lvStrInfo.Append(pGene.SegmentInstance.SegmentValue);
+                }
+
+                lvStrInfo.Append(" e ");
+
+                if (pNextStopLocation != null)
+                {
+                    lvStrInfo.Append(pNextStopLocation.Location);
+                }
+                else
+                {
+                    lvStrInfo.Append("Null");
+                }
+
+                lvStrInfo.Append(", Velocidade: ");
+                lvStrInfo.Append(lvRes);
+                lvStrInfo.Append(" Km/h");
+                DebugLog.Logar(lvStrInfo.ToString(), false, pIndet: TrainIndividual.IDLog);
+            }
+#endif
+
             lvRes = mMinSpeedLimit;
+            pSpentTime = lvRes / (pStopLocationDistance / 100000.0);
         }
         else
         {

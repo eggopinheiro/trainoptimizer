@@ -128,8 +128,10 @@
 		<StopLocation location="57500000" start_coordinate="57175000" end_coordinate="57879000" capacity="2" end_dwell_time="0" />
 		<StopLocation location="58100000" start_coordinate="57924400" end_coordinate="58315000" capacity="2" end_dwell_time="0" />
 		<StopLocation location="58500000" start_coordinate="58315000" end_coordinate="58695000" capacity="2" end_dwell_time="0" />
-		<StopLocation location="59000000" start_coordinate="58740400" end_coordinate="59368100" capacity="2" end_dwell_time="0" />
-		<StopLocation location="60100000" start_coordinate="59928000" end_coordinate="60341000" capacity="2" end_dwell_time="0" />
+		<StopLocation location="58900000" start_coordinate="58740400" end_coordinate="59089700" capacity="2" end_dwell_time="0" />
+        <StopLocation location="59200000" start_coordinate="59089700" end_coordinate="59445600" capacity="2" end_dwell_time="0" />
+        <StopLocation location="59600000" start_coordinate="59491000" end_coordinate="59860000" capacity="2" end_dwell_time="0" />
+		<StopLocation location="60100000" start_coordinate="59860000" end_coordinate="60341000" capacity="2" end_dwell_time="0" />
 		<StopLocation location="60600000" start_coordinate="60386400" end_coordinate="60971000" capacity="2" end_dwell_time="0" />
 		<StopLocation location="61100000" start_coordinate="60971000" end_coordinate="61345000" capacity="2" end_dwell_time="0" />
 		<StopLocation location="61700000" start_coordinate="61390400" end_coordinate="62169000" capacity="2" end_dwell_time="0" />

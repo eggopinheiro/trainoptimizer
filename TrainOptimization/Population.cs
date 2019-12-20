@@ -2447,6 +2447,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                     if (lvGene.StopLocation == null)
                     {
+                        lvGene.State = Gene.STATE.UNDEF;
                         lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate, lvGene.Direction);
                     }
                     else
@@ -2509,6 +2510,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         if ((lvGene.SegmentInstance.SegmentValue.Equals("CV03B") && (lvGene.Direction == -1)) || (lvGene.SegmentInstance.SegmentValue.Equals("CV03C") && (lvGene.Direction == 1)) || lvGene.SegmentInstance.SegmentValue.StartsWith("SW") || lvGene.SegmentInstance.SegmentValue.Equals("WT") || lvGene.SegmentInstance.IsSwitch)
                         {
                             lvGene.StopLocation = null;
+                            lvGene.State = Gene.STATE.UNDEF;
 
                             if (lvGene.Track != 0)
                             {
@@ -2656,6 +2658,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         lvGene.Coordinate = lvGene.Start;
                         lvGene.Direction = Int16.Parse(lvGene.TrainName.Substring(1));
                         lvGene.Speed = 0.0;
+                        lvGene.State = Gene.STATE.IN;
 
                         if ((lvGene.Direction % 2) == 0)
                         {

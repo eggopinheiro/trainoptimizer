@@ -60,7 +60,12 @@ namespace TrainOptimization
             base.OnStart(args);
 
             eventLog1.WriteEntry("Train Optimizator iniciado !");
-            DebugLog.Logar("OnStart", false);
+
+#if DEBUG
+            DebugLog.Logar("TrainOptimizer iniciado OnStart !", false);
+#else
+            DebugLog.Save("TrainOptimizer iniciado OnStart !");
+#endif
 
             //            mTimer_Elapsed(this, null);
 
@@ -1147,6 +1152,7 @@ namespace TrainOptimization
 
 #if DEBUG
                         lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
+//                        lvGeneIndividual.Save();
 #else
                         lvGeneIndividual.Save();
                         ElapsedTimeDataAccess.Update(lvPopulation.UniqueId, DateTime.Now, lvFitness.FitnessCallNum, lvGeneIndividual.Fitness, lvPopulation.CurrentGeneration, lvPopulation.Count, lvPopulation.HillClimbingCallReg);
@@ -1192,7 +1198,11 @@ namespace TrainOptimization
                 DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
             }
 
-            DebugLog.Logar("TrainOptimizer finalizado !", false);
+#if DEBUG
+            DebugLog.Logar("TrainOptimizer finalizado OnStop !", false);
+#else
+            DebugLog.Save("TrainOptimizer finalizado OnStop !");
+#endif
             eventLog1.WriteEntry("TrainOptimizer finalizado !");
         }
 
@@ -1200,7 +1210,12 @@ namespace TrainOptimization
         {
             base.OnPause();
 
-            DebugLog.Logar("TrainOptimizer interrompido !", false);
+#if DEBUG
+            DebugLog.Logar("TrainOptimizer interrompido OnPause !", false);
+#else
+            DebugLog.Save("TrainOptimizer interrompido OnPause !");
+#endif
+
             eventLog1.WriteEntry("TrainOptimizer interrompido !");
         }
 
@@ -1208,7 +1223,12 @@ namespace TrainOptimization
         {
             base.OnContinue();
 
-            DebugLog.Logar("TrainOptimizer resumido !", false);
+#if DEBUG
+            DebugLog.Logar("TrainOptimizer resumido OnContinue !", false);
+#else
+            DebugLog.Save("TrainOptimizer resumido OnContinue !");
+#endif
+
             eventLog1.WriteEntry("TrainOptimizer resumido !");
         }
     }

@@ -229,7 +229,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>,
 
         if (pDirection > 0)
         {
-            while ((lvCurrentStopLocation != null) && (lvCurrentStopLocation.Location <= lvLastStopLocation.Location))
+            while ((lvCurrentStopLocation != null) && (lvLastStopLocation != null) && (lvCurrentStopLocation.Location <= lvLastStopLocation.Location))
             {
                 lvRes.Add(lvCurrentStopLocation);
                 lvCurrentStopLocation = lvCurrentStopLocation.GetNextStopSegment(1);
@@ -237,7 +237,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>,
         }
         else if(pDirection < 0)
         {
-            while ((lvCurrentStopLocation != null) && (lvCurrentStopLocation.Location >= lvLastStopLocation.Location))
+            while ((lvCurrentStopLocation != null) && (lvLastStopLocation != null) && (lvCurrentStopLocation.Location >= lvLastStopLocation.Location))
             {
                 lvRes.Add(lvCurrentStopLocation);
                 lvCurrentStopLocation = lvCurrentStopLocation.GetNextStopSegment(-1);

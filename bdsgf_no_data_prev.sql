@@ -304,7 +304,7 @@ CREATE TABLE `tbcreateplanqueue` (
   PRIMARY KEY (`id`),
   KEY `idxcreateplantime` (`hist`),
   KEY `idxcreateplankey` (`pmt_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=208076 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=160430 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -530,7 +530,7 @@ CREATE TABLE `tbinterdqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrqueue` (`hist`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=30184253 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -655,31 +655,6 @@ CREATE TABLE `tblogstd` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `tbmaintprovevent`
---
-
-DROP TABLE IF EXISTS `tbmaintprovevent`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmaintprovevent` (
-  `maintprovevent_id` bigint(20) NOT NULL,
-  `mpprovision_id` bigint(20) NOT NULL,
-  `prev_status_id` int(11) NOT NULL,
-  `new_status_id` int(11) NOT NULL,
-  `changing_user` varchar(50) DEFAULT NULL,
-  `date_changed` datetime NOT NULL,
-  `hist` datetime DEFAULT NULL,
-  PRIMARY KEY (`mpprovision_id`),
-  KEY `fk_tbmaintprovevent_tbmpstatus_prev_idx` (`prev_status_id`),
-  KEY `fk_tbmaintprovevent_tbmpstatus_new_idx` (`new_status_id`),
-  KEY `idx_tbmaintprovevent_date_changed` (`date_changed`),
-  CONSTRAINT `fk_tbmaintprovevent_tbmpprovision` FOREIGN KEY (`mpprovision_id`) REFERENCES `tbmpprovision` (`mpprovision_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_tbmaintprovevent_tbmpstatus_new` FOREIGN KEY (`new_status_id`) REFERENCES `tbmpstatus` (`status_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_tbmaintprovevent_tbmpstatus_prev` FOREIGN KEY (`prev_status_id`) REFERENCES `tbmpstatus` (`status_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `tbmemprof`
 --
 
@@ -698,7 +673,7 @@ CREATE TABLE `tbmemprof` (
   `non_heap_memory_used` double DEFAULT NULL,
   `non_heap_memory_free` double DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2469413 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=276626 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -715,102 +690,6 @@ CREATE TABLE `tbmetatt` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`olocal`,`turno`),
   UNIQUE KEY `idxMetaTT` (`olocal`,`turno`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tbmpeventtype`
---
-
-DROP TABLE IF EXISTS `tbmpeventtype`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmpeventtype` (
-  `event_type_id` int(11) NOT NULL,
-  `name` varchar(45) NOT NULL,
-  `inter_name` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`event_type_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tbmpprovision`
---
-
-DROP TABLE IF EXISTS `tbmpprovision`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmpprovision` (
-  `mpprovision_id` bigint(20) NOT NULL,
-  `speed` int(11) DEFAULT NULL,
-  `flag` tinyint(1) DEFAULT NULL,
-  `direction` int(11) DEFAULT NULL,
-  `duration` int(11) DEFAULT NULL,
-  `endless` tinyint(1) DEFAULT NULL,
-  `create_mtm` tinyint(1) DEFAULT NULL,
-  `start_date` datetime DEFAULT NULL,
-  `end_date` datetime DEFAULT NULL,
-  `reason` text NOT NULL,
-  `user_code` varchar(45) DEFAULT NULL,
-  `date_added` datetime DEFAULT NULL,
-  `observation` text,
-  `reject_reason` text,
-  `event_type_id` int(11) NOT NULL,
-  `status_id` int(11) NOT NULL,
-  `service_type_id` int(11) NOT NULL,
-  `branch_id` bigint(20) NOT NULL,
-  `location_by_element` tinyint(1) DEFAULT NULL,
-  `element_start_yard` varchar(50) DEFAULT NULL,
-  `element_end_yard` varchar(50) DEFAULT NULL,
-  `start_element` varchar(50) DEFAULT NULL,
-  `end_element` varchar(50) DEFAULT NULL,
-  `element_start_track` varchar(45) DEFAULT NULL,
-  `element_end_track` varchar(45) DEFAULT NULL,
-  `location_by_km` tinyint(1) DEFAULT NULL,
-  `start_track` varchar(45) DEFAULT NULL,
-  `end_track` varchar(45) DEFAULT NULL,
-  `start_km` float DEFAULT NULL,
-  `end_km` float DEFAULT NULL,
-  `hist` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`mpprovision_id`),
-  KEY `fk_tbmpprovision_tbbranch_idx` (`branch_id`),
-  KEY `tb_tbmpprovision_tbmpeventtype_idx` (`event_type_id`),
-  KEY `tb_tbmpprovision_tbmpservicetype_idx` (`service_type_id`),
-  KEY `tb_tbmpprovision_tbmpstatus_idx` (`status_id`),
-  CONSTRAINT `fk_tbmpprovision_tbbranch` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `tb_tbmpprovision_tbmpeventtype` FOREIGN KEY (`event_type_id`) REFERENCES `tbmpeventtype` (`event_type_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `tb_tbmpprovision_tbmpservicetype` FOREIGN KEY (`service_type_id`) REFERENCES `tbmpservicetype` (`service_type_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `tb_tbmpprovision_tbmpstatus` FOREIGN KEY (`status_id`) REFERENCES `tbmpstatus` (`status_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tbmpservicetype`
---
-
-DROP TABLE IF EXISTS `tbmpservicetype`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmpservicetype` (
-  `service_type_id` int(11) NOT NULL,
-  `name` varchar(45) NOT NULL,
-  `inter_name` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`service_type_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tbmpstatus`
---
-
-DROP TABLE IF EXISTS `tbmpstatus`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmpstatus` (
-  `status_id` int(11) NOT NULL,
-  `name` varchar(45) NOT NULL,
-  `inter_name` varchar(45) DEFAULT NULL,
-  PRIMARY KEY (`status_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -842,41 +721,6 @@ CREATE TABLE `tbmtm` (
   KEY `idxInitialDate` (`initial_date`),
   CONSTRAINT `tbmtm_ibfk_1` FOREIGN KEY (`cod_status`) REFERENCES `tbmtmstatus` (`id`),
   CONSTRAINT `tbmtm_ibfk_2` FOREIGN KEY (`cod_reason`) REFERENCES `tbmtmreason` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tbmtmevent`
---
-
-DROP TABLE IF EXISTS `tbmtmevent`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbmtmevent` (
-  `mtmevent_id` bigint(20) NOT NULL,
-  `mpprovision_id` bigint(20) NOT NULL,
-  `initial_datetime` datetime DEFAULT NULL,
-  `end_datetime` datetime DEFAULT NULL,
-  `start_point_coordinate` int(11) DEFAULT NULL,
-  `end_point_coordinate` int(11) DEFAULT NULL,
-  `reason` mediumtext,
-  `mtmtype_id` tinyint(4) DEFAULT NULL,
-  `mtmstatus_id` tinyint(4) DEFAULT NULL,
-  `is_alarmed` tinyint(1) DEFAULT NULL,
-  `initial_datetime_real` datetime DEFAULT NULL,
-  `end_datetime_real` datetime DEFAULT NULL,
-  `description` mediumtext,
-  `location_id` bigint(20) DEFAULT NULL,
-  `duration` int(11) DEFAULT NULL,
-  `is_ba` tinyint(1) DEFAULT NULL,
-  `hist` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`mtmevent_id`),
-  KEY `fk_mtmevent_mpprovision_idx` (`mpprovision_id`),
-  KEY `fk_mtmevent_mtmtype_idx` (`mtmtype_id`),
-  KEY `fk_mtmevent_mtmstatus_idx` (`mtmstatus_id`),
-  CONSTRAINT `fk_mtmevent_mpprovision` FOREIGN KEY (`mpprovision_id`) REFERENCES `tbmpprovision` (`mpprovision_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_mtmevent_mtmstatus` FOREIGN KEY (`mtmstatus_id`) REFERENCES `tbmtmstatus` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_mtmevent_mtmtype` FOREIGN KEY (`mtmtype_id`) REFERENCES `tbmtmtype` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -929,8 +773,7 @@ DROP TABLE IF EXISTS `tbmtmstatus`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tbmtmstatus` (
   `id` tinyint(4) NOT NULL,
-  `name` varchar(45) CHARACTER SET latin1 DEFAULT NULL,
-  `inter_name` varchar(45) DEFAULT NULL,
+  `name` varchar(20) CHARACTER SET latin1 DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -944,8 +787,7 @@ DROP TABLE IF EXISTS `tbmtmtype`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tbmtmtype` (
   `id` tinyint(4) NOT NULL,
-  `name` varchar(45) CHARACTER SET latin1 DEFAULT NULL,
-  `inter_name` varchar(45) DEFAULT NULL,
+  `name` varchar(25) CHARACTER SET latin1 DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1131,7 +973,7 @@ CREATE TABLE `tbplanqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrainplanqueue` (`hist`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2872322 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1264,7 +1106,7 @@ CREATE TABLE `tbrepeatersstatus` (
   PRIMARY KEY (`id`),
   KEY `repeater_id_hist` (`repeater_id`,`hist`),
   CONSTRAINT `fk_repeater_id` FOREIGN KEY (`repeater_id`) REFERENCES `tbrepeaters` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3398400 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3300281 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1486,7 +1328,7 @@ CREATE TABLE `tbsrqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrqueue` (`hist`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6259712 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1623,7 +1465,8 @@ CREATE TABLE `tbtrain` (
   KEY `idxTrainDirection` (`direction`),
   KEY `idxTrainDepartureTM` (`departure_time`),
   KEY `idxTrainArrivalTM` (`arrival_time`),
-  KEY `plan_id` (`plan_id`)
+  KEY `plan_id` (`plan_id`),
+  CONSTRAINT `tbtrain_ibfk_1` FOREIGN KEY (`plan_id`) REFERENCES `tbplan` (`plan_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2042,7 +1885,7 @@ CREATE TABLE `tbtrainmovsegqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrainmovsegqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=53928830 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=46531391 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2091,19 +1934,16 @@ CREATE TABLE `tbtrainnote` (
   `note_id` bigint(20) NOT NULL,
   `creation_time` datetime NOT NULL,
   `train_id` bigint(20) NOT NULL,
-  `creator` varchar(30) DEFAULT NULL,
-  `description` text,
-  `position_track` varchar(15) DEFAULT NULL,
+  `creator` varchar(30) CHARACTER SET latin1 DEFAULT NULL,
+  `description` text CHARACTER SET latin1,
+  `position_track` varchar(15) CHARACTER SET latin1 DEFAULT NULL,
   `position_coordinate` int(11) NOT NULL,
   `categ_id` bigint(20) NOT NULL DEFAULT '0',
-  `branch_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`note_id`),
   KEY `idxTrainNoteDate` (`creation_time`),
   KEY `idxTrainNote` (`train_id`),
   KEY `idxTrainNotePosition` (`position_coordinate`),
   KEY `idxTrainNotePositionTrain` (`train_id`,`position_coordinate`),
-  KEY `fk_tbtrainote_tbbranch_idx` (`branch_id`),
-  CONSTRAINT `fk_tbtrainote_tbbranch` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `tbtrainnote_ibfk_1` FOREIGN KEY (`train_id`) REFERENCES `tbtrain` (`train_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -2140,7 +1980,7 @@ CREATE TABLE `tbtrainnotequeue` (
   `categ_id` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `idxtrainnotequeue` (`hist`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=17043318 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2159,19 +1999,6 @@ CREATE TABLE `tbtrainonline` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `tbtrainoptconfig`
---
-
-DROP TABLE IF EXISTS `tbtrainoptconfig`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `tbtrainoptconfig` (
-  `actived_opt` tinyint(1) NOT NULL DEFAULT '0',
-  `restore` tinyint(1) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `tbtrainoptdata`
 --
 
@@ -2181,17 +2008,14 @@ DROP TABLE IF EXISTS `tbtrainoptdata`;
 CREATE TABLE `tbtrainoptdata` (
   `train_id` bigint(20) NOT NULL,
   `train_name` varchar(6) NOT NULL,
-  `timeValueStart` bigint(20) NOT NULL,
-  `positionStart` double NOT NULL,
+  `timevalue` bigint(20) NOT NULL DEFAULT '0',
+  `position` double NOT NULL,
   `hist` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `track` smallint(6) NOT NULL DEFAULT '0',
   `branch_id` bigint(20) DEFAULT NULL,
-  `timeValueEnd` bigint(20) DEFAULT NULL,
-  `positionEnd` double DEFAULT NULL,
-  `stopLocation` int(11) DEFAULT NULL,
-  PRIMARY KEY (`train_id`,`timeValueStart`,`positionStart`),
+  PRIMARY KEY (`train_id`,`timevalue`,`position`),
   KEY `idxTrainPlanOptData` (`train_id`),
-  KEY `idxTimePlanOptData` (`timeValueStart`),
+  KEY `idxTimePlanOptData` (`timevalue`),
   KEY `branch_id` (`branch_id`),
   CONSTRAINT `tbtrainoptdata_ibfk_1` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -2236,7 +2060,7 @@ CREATE TABLE `tbtrainoptlog` (
   `targetsite` varchar(255) NOT NULL,
   `hist` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13038488 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=41520728 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2249,7 +2073,6 @@ DROP TABLE IF EXISTS `tbtrainpat`;
 CREATE TABLE `tbtrainpat` (
   `pmt_id` varchar(25) CHARACTER SET latin1 NOT NULL,
   `prev_part` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `os` varchar(22) DEFAULT NULL,
   `KMOrigem` smallint(6) NOT NULL DEFAULT '0',
   `KMDestino` smallint(6) NOT NULL DEFAULT '0',
   `KMParada` smallint(6) NOT NULL DEFAULT '0',
@@ -2259,7 +2082,7 @@ CREATE TABLE `tbtrainpat` (
   `date_hist` datetime NOT NULL,
   `plan_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`pmt_id`,`KMParada`,`Activity`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Plano de atividade dos trens - Recolhidas do GPV';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2278,7 +2101,7 @@ CREATE TABLE `tbtrainpatqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtbtrainpatqueue` (`hist`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3636233 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2341,16 +2164,13 @@ DROP TABLE IF EXISTS `tbtrainplansegment`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tbtrainplansegment` (
   `train_id` bigint(20) NOT NULL,
-  `branch_id` bigint(20) DEFAULT NULL,
   `horario` datetime NOT NULL,
   `location` int(11) NOT NULL,
   `segment` varchar(45) CHARACTER SET latin1 NOT NULL,
   `track` varchar(45) CHARACTER SET latin1 DEFAULT NULL,
   `coordinate` int(11) DEFAULT NULL,
   `hist` datetime DEFAULT NULL,
-  PRIMARY KEY (`train_id`,`horario`,`location`,`segment`),
-  KEY `fk_tbtrainplansegment_tbbranch_idx` (`branch_id`),
-  CONSTRAINT `fk_tbtrainplansegment_tbbranch` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  PRIMARY KEY (`train_id`,`horario`,`location`,`segment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2658,4 +2478,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-06-02 22:35:58
+-- Dump completed on 2018-01-10 22:56:09

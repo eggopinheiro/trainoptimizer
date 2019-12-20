@@ -16,3 +16,4 @@ C:\Users\eggo\Projetos\TrainOptimization\TrainOptimization\obj\Release\TrainOpti
 C:\Users\eggo\Projetos\TrainOptimization\TrainOptimization\obj\Release\TrainOptimization.csproj.GenerateResource.Cache
 C:\Users\eggo\Projetos\TrainOptimization\TrainOptimization\obj\Release\TrainOptimization.csprojResolveAssemblyReference.cache
 C:\Users\ehfp\Projects\TrainOptimization\TrainOptimization\bin\Release\MySql.Data.dll
+C:\Users\ehfp\Projects\TrainOptimization\TrainOptimization\obj\Release\TrainOptimization.csprojResolveAssemblyReference.cache

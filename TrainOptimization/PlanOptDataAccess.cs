@@ -19,13 +19,13 @@ public class PlanOptDataAccess
     }
 
     [DataObjectMethod(DataObjectMethodType.Insert)]
-    public static int Insert(long ptrain_id, string ptrainname, long ptimevalue, double pposition, Int16 pTrack, Int64 pBranch)
+    public static int Insert(long ptrain_id, string ptrainname, long ptimevalueStart, double ppositionStart, Int16 pTrack, Int64 pBranch, int pStopLocation = Int32.MinValue, long ptimevalueEnd = Int64.MinValue, double ppositionEnd = -999999999999)
     {
         string lvSql = "";
         int lvRowAffects = 0;
 
-        lvSql = "insert into tbtrainoptdata(train_id, train_name, timevalue, position, track, branch_id, hist) ";
-        lvSql += "values(@train_id, @train_name, @timevalue, @position, @track, @branch_id, now())";
+        lvSql = "insert into tbtrainoptdata(train_id, train_name, timeValueStart, positionStart, timeValueEnd, positionEnd, stopLocation, track, branch_id, hist) ";
+        lvSql += "values(@train_id, @train_name, @timeValueStart, @positionStart, @timeValueEnd, @positionEnd, @stopLocation, @track, @branch_id, now())";
 
         MySqlConnection conn = ConnectionManager.GetObjConnection();
         MySqlCommand cmd = new MySqlCommand(lvSql, conn);
@@ -41,25 +41,52 @@ public class PlanOptDataAccess
 
         cmd.Parameters.Add("@train_name", MySqlDbType.String).Value = ptrainname;
 
-        if (ptimevalue == Int64.MinValue)
+        if (ptimevalueStart == Int64.MinValue)
         {
-            cmd.Parameters.Add("@timevalue", MySqlDbType.Int64).Value = DBNull.Value;
+            cmd.Parameters.Add("@timeValueStart", MySqlDbType.Int64).Value = DBNull.Value;
         }
         else
         {
-            cmd.Parameters.Add("@timevalue", MySqlDbType.Int64).Value = ptimevalue;
+            cmd.Parameters.Add("@timeValueStart", MySqlDbType.Int64).Value = ptimevalueStart;
         }
 
-        if (pposition == ConnectionManager.DOUBLE_REF_VALUE)
+        if (ptimevalueEnd == Int64.MinValue)
         {
-            cmd.Parameters.Add("@position", MySqlDbType.Double).Value = DBNull.Value;
+            cmd.Parameters.Add("@timeValueEnd", MySqlDbType.Int64).Value = DBNull.Value;
         }
         else
         {
-            cmd.Parameters.Add("@position", MySqlDbType.Double).Value = pposition;
+            cmd.Parameters.Add("@timeValueEnd", MySqlDbType.Int64).Value = ptimevalueEnd;
         }
 
-        if (pposition == Int16.MinValue)
+        if (ppositionStart == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@positionStart", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@positionStart", MySqlDbType.Double).Value = ppositionStart;
+        }
+
+        if (ppositionEnd == ConnectionManager.DOUBLE_REF_VALUE)
+        {
+            cmd.Parameters.Add("@positionEnd", MySqlDbType.Double).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@positionEnd", MySqlDbType.Double).Value = ppositionEnd;
+        }
+
+        if (pStopLocation == Int32.MinValue)
+        {
+            cmd.Parameters.Add("@stopLocation", MySqlDbType.Int16).Value = DBNull.Value;
+        }
+        else
+        {
+            cmd.Parameters.Add("@stopLocation", MySqlDbType.Int16).Value = pStopLocation;
+        }
+
+        if (pTrack == Int16.MinValue)
         {
             cmd.Parameters.Add("@track", MySqlDbType.Int16).Value = DBNull.Value;
         }
