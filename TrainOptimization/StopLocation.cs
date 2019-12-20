@@ -11,7 +11,7 @@ using System.Xml;
 /// <summary>
 
 [Serializable]
-public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
+public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>, IEnumerable<StopLocation>
 {
     protected static List<StopLocation> mListStopLoc = null;
     protected static int mMinLen = 0;
@@ -193,7 +193,95 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
 
         return lvRes;
     }
-    
+
+    public static List<StopLocation> GetStopLocationsUpToSwitch(StopLocation pCurrentStopLocation, Segment pFinalSwitch, int pDirection)
+    {
+        List<StopLocation> lvRes = new List<StopLocation>();
+        StopLocation lvCurrentStopLocation = null;
+        StopLocation lvLastStopLocation = null;
+
+        if ((mListStopLoc == null) || (mListStopLoc.Count == 0)) return lvRes;
+
+        if (pCurrentStopLocation == null)
+        {
+            return lvRes;
+        }
+        else
+        {
+            lvCurrentStopLocation = pCurrentStopLocation;
+        }
+
+        if (pFinalSwitch == null)
+        {
+            if (pDirection > 0)
+            {
+                lvLastStopLocation = mListStopLoc[mListStopLoc.Count - 1];
+            }
+            else if(pDirection < 0)
+            {
+                lvLastStopLocation = mListStopLoc[0];
+            }
+        }
+        else
+        {
+            lvLastStopLocation = pFinalSwitch.GetNextStopLocation(pDirection * (-1));
+        }
+
+        if (pDirection > 0)
+        {
+            while ((lvCurrentStopLocation != null) && (lvCurrentStopLocation.Location <= lvLastStopLocation.Location))
+            {
+                lvRes.Add(lvCurrentStopLocation);
+                lvCurrentStopLocation = lvCurrentStopLocation.GetNextStopSegment(1);
+            }
+        }
+        else if(pDirection < 0)
+        {
+            while ((lvCurrentStopLocation != null) && (lvCurrentStopLocation.Location >= lvLastStopLocation.Location))
+            {
+                lvRes.Add(lvCurrentStopLocation);
+                lvCurrentStopLocation = lvCurrentStopLocation.GetNextStopSegment(-1);
+            }
+        }
+
+        return lvRes;
+    }
+
+    public static List<StopLocation> GetStopLocationsBetweenSwitches(Segment pLeftSwitch, Segment pRightSwitch)
+    {
+        List<StopLocation> lvRes = new List<StopLocation>();
+        StopLocation lvCurrentStopLocation = null;
+        StopLocation lvLastStopLocation = null;
+
+        if ((mListStopLoc == null) || (mListStopLoc.Count == 0)) return lvRes;
+
+        if (pLeftSwitch == null)
+        {
+            lvCurrentStopLocation = mListStopLoc[0];
+        }
+        else
+        {
+            lvCurrentStopLocation = pLeftSwitch.GetNextStopLocation(1);
+        }
+
+        if(pRightSwitch == null)
+        {
+            lvLastStopLocation = mListStopLoc[mListStopLoc.Count - 1];
+        }
+        else
+        {
+            lvLastStopLocation = pRightSwitch.GetNextStopLocation(-1);
+        }
+
+        while((lvCurrentStopLocation != null) && lvCurrentStopLocation.Location <= lvLastStopLocation.Location)
+        {
+            lvRes.Add(lvCurrentStopLocation);
+            lvCurrentStopLocation = lvCurrentStopLocation.GetNextStopSegment(1);
+        }
+
+        return lvRes;
+    }
+
     public virtual bool Load()
 	{
 		bool lvResult = false;
@@ -1123,7 +1211,40 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     }
 */
 
-    public static List<StopLocation> GetList()
+    public StopLocation this[int i]
+    {
+        get
+        {
+            if (i < mListStopLoc.Count)
+            {
+                return mListStopLoc[i];
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        set
+        {
+            if ((i < mListStopLoc.Count) && (i >= 0))
+            {
+                mListStopLoc[i] = value;
+            }
+        }
+    }
+
+    public IEnumerator<StopLocation> GetEnumerator()
+    {
+        return mListStopLoc.GetEnumerator();
+    }
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+    {
+        return this.GetEnumerator();
+    }
+
+    public static IEnumerable<StopLocation> GetList()
     {
         return mListStopLoc;
     }

@@ -771,25 +771,28 @@ public class TrainmovsegmentDataAccess
         return ds;
     }
 
-    public static DataSet GetCurrentTrainsData(DateTime pInitialDate, DateTime pFinalDate, bool pStarDelayed = false)
+    public static DataSet GetCurrentTrainsData(DateTime pInitialDate, DateTime pFinalDate)
     {
         DataSet ds = new DataSet();
         string lvSql;
 
         if (pInitialDate.Date < DateTime.Now.Date)
-        {
+        { /* Produção normal cai aqui */
             lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' order by tbtrain.departure_time asc";
         }
         else
         {
-            if (!pStarDelayed)
+            /* XML cai aqui */
+            lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' and (tbtrain.status = 'Circulando' Or tbtrain.status = 'Planejado') order by tbtrain.departure_time asc";
+            
+            /*
+            else if(pStarDelayed))
             {
-                lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' and (tbtrain.status = 'Circulando' Or tbtrain.status = 'Planejado') order by tbtrain.departure_time asc";
+                //lvSql = "SELECT t1.train_id, t1.horario data_ocup, t1.location, t1.segment ud, t1.track, t1.coordinate, tbtrain.direction, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainplansegment t1 JOIN (SELECT temp2.train_id, MIN(temp1.horario) horario, (SELECT IF(temp2.direction > 0, MAX(tbtrainplansegment.coordinate), MIN(tbtrainplansegment.coordinate)) FROM tbtrainplansegment WHERE tbtrainplansegment.train_id = temp2.train_id AND tbtrainplansegment.horario = temp1.horario) coordinate FROM tbtrainplansegment temp1 JOIN tbtrain temp2 ON temp1.train_id = temp2.train_id WHERE(horario BETWEEN @InitialDate AND @FinalDate) AND branch_id = @branch_id GROUP BY train_id ORDER BY horario DESC) t2 ON (t1.train_id = t2.train_id AND t1.horario = t2.horario AND t1.coordinate = t2.coordinate) JOIN tbtrain ON(t1.train_id = tbtrain.train_id) LEFT JOIN tbplan ON (tbtrain.plan_id = tbplan.plan_id) WHERE tbtrain.name NOT LIKE 'X%' ORDER BY tbtrain.departure_time ASC";
+
+                lvSql = "SELECT t1.train_id, t1.horario data_ocup, t1.location, t1.segment ud, t1.track, t1.coordinate, tbtrain.direction, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainplansegment t1 JOIN (SELECT FROM tbtrainplansegment temp1 JOIN tbtrain temp2 ON temp1.train_id = temp2.train_id WHERE(horario BETWEEN @InitialDate AND @FinalDate) AND branch_id = @branch_id GROUP BY train_id ORDER BY horario DESC) t2 ON (t1.train_id = t2.train_id AND t1.horario = t2.horario AND t1.coordinate = t2.coordinate) JOIN tbtrain ON(t1.train_id = tbtrain.train_id) LEFT JOIN tbplan ON (tbtrain.plan_id = tbplan.plan_id) WHERE WHERE(horario BETWEEN @InitialDate AND @FinalDate) AND branch_id = @branch_id And tbtrain.name NOT LIKE 'X%' ORDER BY tbtrain.departure_time ASC";
             }
-            else
-            {
-                lvSql = "select t1.train_id, t1.horario, t1.location, t1.segment, t1.track, t1.coordinate, tbtrain.direction, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainplansegment t1 join (select train_id, min(horario) horario from tbtrainplansegment where (horario BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by horario desc) t2 on (t1.train_id=t2.train_id and t1.horario=t2.horario) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' order by tbtrain.departure_time asc";
-            }
+            */
         }
 
         MySqlConnection conn = ConnectionManager.GetObjConnection();

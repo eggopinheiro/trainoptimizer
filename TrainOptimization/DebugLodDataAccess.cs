@@ -34,13 +34,13 @@ class DebugLodDataAccess
         catch (MySqlException myex)
         {
             ConnectionManager.DebugMySqlQuery(cmd, "lvSql");
-            DebugLog.Logar("DebugLodDataAccess => (" + lvSql + ") :: " + myex.ToString());
+            DebugLog.Logar("DebugLodDataAccess => (" + lvSql + ") :: " + myex.ToString(), false);
             //throw myex;
         }
         catch (NullReferenceException nullex)
         {
             ConnectionManager.DebugMySqlQuery(cmd, "lvSql");
-            DebugLog.Logar("DebugLodDataAccess => (" + lvSql + ") :: " + nullex.ToString());
+            DebugLog.Logar("DebugLodDataAccess => (" + lvSql + ") :: " + nullex.ToString(), false);
             //throw nullex;
         }
 

@@ -303,6 +303,7 @@ public class Gene : IEquatable<Gene>
 
         lvRes.mId = mId;
         lvRes.mTrainId = mTrainId;
+        lvRes.Sequence = mSequence;
         lvRes.mTime = mTime;
         lvRes.mSegment = mSegment;
         lvRes.mTrack = mTrack;
@@ -316,10 +317,10 @@ public class Gene : IEquatable<Gene>
         lvRes.mEndStopLocation = mEndStopLocation;
         lvRes.mDepartureTime = mDepartureTime;
         lvRes.mHeadWayTime = mHeadWayTime;
+        lvRes.OptimumTime = mOptimumTime;
         lvRes.mSpeed = mSpeed;
         lvRes.mValueWeight = mValueWeight;
         lvRes.mState = mState;
-        lvRes.mOptimumTime = mOptimumTime;
 
         //return this.MemberwiseClone();
         return lvRes;

@@ -210,11 +210,11 @@ public class TrainMovement : IEquatable<TrainMovement>, IEnumerable<Gene>
 
             if (lvGene.StopLocation != null)
             {
-                mId = new { lvGene.TrainId, lvGene.StopLocation.Location }.GetHashCode();
+                mId = new { lvGene.TrainId, lvGene.StopLocation.Location, lvGene.State }.GetHashCode();
             }
             else
             {
-                mId = new { lvGene.TrainId }.GetHashCode();
+                mId = new { lvGene.TrainId, lvGene.State }.GetHashCode();
             }
         }
     }
@@ -240,6 +240,8 @@ public class TrainMovement : IEquatable<TrainMovement>, IEnumerable<Gene>
                 lvRes.Append(" => ");
             }
             lvRes.Append(lvGene.TrainId);
+            lvRes.Append(", Nome: ");
+            lvRes.Append(lvGene.TrainName);
             lvRes.Append(", Data: ");
             lvRes.Append(lvGene.Time);
             lvRes.Append(", Local: ");
@@ -270,6 +272,8 @@ public class TrainMovement : IEquatable<TrainMovement>, IEnumerable<Gene>
             lvRes.Append(lvGene.Track);
             lvRes.Append(", Destino: ");
             lvRes.Append(lvGene.End);
+            lvRes.Append(", Headway: ");
+            lvRes.Append(lvGene.HeadWayTime);
         }
 
         return lvRes.ToString();

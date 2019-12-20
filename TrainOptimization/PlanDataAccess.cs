@@ -520,6 +520,48 @@ public class PlanDataAccess
         return ds;
     }
 
+    public static DataSet GetCurrentPlansPoints(DateTime pdeparture_timeInicio = default(DateTime), DateTime pdeparture_timeFim = default(DateTime))
+    {
+        string lvSql = "";
+        DataSet ds = new DataSet();
+
+        lvSql = "SELECT t1.train_id, t1.horario data_ocup, t1.location, t1.segment ud, t1.track, t1.coordinate, tbtrain.direction, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainplansegment t1 LEFT JOIN tbtrain ON(t1.train_id = tbtrain.train_id) LEFT JOIN tbplan ON (tbtrain.plan_id = tbplan.plan_id) WHERE(t1.horario BETWEEN @begindate AND @enddate) and (tbtrain.status = 'Circulando' Or tbtrain.status = 'Planejado') AND t1.branch_id = @branch_id And tbtrain.name NOT LIKE 'X%' ORDER BY tbtrain.departure_time ASC, t1.train_id, t1.horario, if(tbtrain.direction > 0, t1.coordinate, -t1.coordinate)";
+        //lvSql = "SELECT t1.train_id, t1.horario data_ocup, t1.location, t1.segment ud, t1.track, t1.coordinate, tbtrain.direction, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainplansegment t1 JOIN (SELECT FROM tbtrainplansegment temp1 JOIN tbtrain temp2 ON temp1.train_id = temp2.train_id WHERE(horario BETWEEN @InitialDate AND @FinalDate) AND branch_id = @branch_id GROUP BY train_id ORDER BY horario DESC) t2 ON (t1.train_id = t2.train_id AND t1.horario = t2.horario AND t1.coordinate = t2.coordinate) JOIN tbtrain ON(t1.train_id = tbtrain.train_id) LEFT JOIN tbplan ON (tbtrain.plan_id = tbplan.plan_id) WHERE WHERE(horario BETWEEN @InitialDate AND @FinalDate) AND branch_id = @branch_id And tbtrain.name NOT LIKE 'X%' ORDER BY tbtrain.departure_time ASC";
+
+        MySqlConnection conn = ConnectionManager.GetObjConnection();
+        MySqlCommand cmd = new MySqlCommand(lvSql, conn);
+
+        if (pdeparture_timeInicio == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@begindate", MySqlDbType.DateTime).Value = DateTime.MinValue;
+        }
+        else
+        {
+            cmd.Parameters.Add("@begindate", MySqlDbType.DateTime).Value = pdeparture_timeInicio.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+
+        if (pdeparture_timeFim == DateTime.MinValue)
+        {
+            cmd.Parameters.Add("@enddate", MySqlDbType.DateTime).Value = DateTime.MaxValue;
+        }
+        else
+        {
+            cmd.Parameters.Add("@enddate", MySqlDbType.DateTime).Value = pdeparture_timeFim.ToString("yyyy/MM/dd HH:mm:ss");
+        }
+        cmd.Parameters.Add("@branch_id", MySqlDbType.String).Value = SegmentDataAccess.Branch;
+
+        cmd.CommandType = CommandType.Text;
+
+        conn.Close();
+
+        ConnectionManager.DebugMySqlQuery(cmd, "GetCurrentPlansPoints.lvSql");
+
+        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+        adapter.Fill(ds, "tbtrainplansegment");
+
+        return ds;
+    }
+
 	[DataObjectMethod(DataObjectMethodType.Select)]
 	public static DataSet GetDataByRange(double pplan_idInicio = -999999999999, double pplan_idFim = -999999999999, string ptrain_name = "", int porigemInicio = -2147483648, int porigemFim = -2147483648, int pdestinoInicio = -2147483648, int pdestinoFim = -2147483648, DateTime pdeparture_timeInicio = default(DateTime), DateTime pdeparture_timeFim = default(DateTime), DateTime phistInicio = default(DateTime), DateTime phistFim = default(DateTime), string ppmt_id = "", string poid = "", Boolean pUseForeignKey = false, string pStrSortField = "")
 	{

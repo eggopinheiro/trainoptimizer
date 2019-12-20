@@ -548,7 +548,7 @@ namespace TrainOptimization
             Segment.SetList(lvSegments);
             Segment.SetListSwitch(lvSwitches);
             StopLocation.LoadList(pStrFile);
-            Segment.LoadStopLocations(StopLocation.GetList());
+            Segment.LoadStopLocations((List<StopLocation>)StopLocation.GetList());
 
             for (int i = 0; i < lvTrainMovList.Count; i++)
             {
@@ -926,6 +926,7 @@ namespace TrainOptimization
             double lvNicheDistance = 0.0;
             double lvThreshold;
             bool lvRes = false;
+            bool lvIsLogEnables = DebugLog.EnableDebug;
 
             //            DebugLog.Logar("mTimer_Elapsed fired !");
 
@@ -944,7 +945,7 @@ namespace TrainOptimization
                 {
                     StopLocation.LoadList();
                 }
-                Segment.LoadStopLocations(StopLocation.GetList());
+                Segment.LoadStopLocations((List<StopLocation>)StopLocation.GetList());
                 TrainPerformanceControl.LoadDic();
 
                 if (!DateTime.TryParse(ConfigurationManager.AppSettings["INITIAL_DATE"], out mInitialDate))
@@ -1152,6 +1153,14 @@ namespace TrainOptimization
 #endif
 
                         lvPopulation.SaveBestIndividuals();
+
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        DebugLog.Logar("(lvGeneIndividual: " + lvGeneIndividual.GetUniqueId() + ") = " + lvGeneIndividual + "\n", pIndet: TrainIndividual.IDLog);
+                        ((TrainIndividual)lvGeneIndividual).DumpCurrentState("lvGeneIndividual");
+                        ((TrainIndividual)lvGeneIndividual).DumpCurrentPosDic("lvGeneIndividual");
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
                         //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
 

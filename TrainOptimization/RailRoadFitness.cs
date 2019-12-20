@@ -182,7 +182,7 @@ public class RailRoadFitness : IFitness<TrainMovement>
                         lvFitnessElement.ValueWeight = lvGene.ValueWeight;
                         lvFitnessElement.EndStopLocation = lvGene.EndStopLocation;
 
-                        if (lvGene.OptimumTime > DateTime.MinValue)
+                        if (lvGene.OptimumTime == DateTime.MinValue)
                         {
                             if (lvGene.StopLocation != null)
                             {

@@ -41,6 +41,21 @@ public class Train
 	protected string lvunilogcurseg;
 	protected double lvloco_code;
 
+    public enum DIRECTION
+    {
+        NONEe = 0,
+        FORWARD = 1,
+        BACKWARD = -1
+    }
+
+        private enum LS_STRATEGY_ENUM
+    {
+        None,
+        GradientDescent,
+        HillClimbingBest
+    }
+
+
     public static string GetColorByTrainType(string type)
     {
         string lvRes = "green";
