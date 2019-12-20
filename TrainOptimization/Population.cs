@@ -491,7 +491,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     mIndividuals.Add(lvIndividual);
 #if DEBUG
                     ((TrainIndividual)lvIndividual).GenerateFlotFiles(DebugLog.LogPath);
-                    DebugLog.Logar("Individual " + TrainIndividual.IDLog + " = " + lvIndividual.Fitness, false, pIndet: mCurrentGeneration);
+                    //DebugLog.Logar("Individual " + TrainIndividual.IDLog + " = " + lvIndividual.Fitness, false, pIndet: mCurrentGeneration);
 #endif
                 }
             }
@@ -2407,7 +2407,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     lvGene.Time = ((row["data_ocup"] == DBNull.Value) ? DateTime.MinValue : DateTime.Parse(row["data_ocup"].ToString()));
                     lvLocation = ((row["location"] == DBNull.Value) ? Int16.MinValue : Convert.ToInt16(row["location"]));
                     lvStrUD = ((row["ud"] == DBNull.Value) ? "" : row["ud"].ToString());
-                    lvGene.Direction = ((row["direction"] == DBNull.Value) ? Int16.MinValue : Convert.ToInt16(row["direction"]));
+                    //lvGene.Direction = ((row["direction"] == DBNull.Value) ? Int16.MinValue : Convert.ToInt16(row["direction"]));
                     lvGene.Track = ((row["track"] == DBNull.Value) ? Int16.MinValue : Convert.ToInt16(row["track"]));
                     lvGene.Coordinate = ((row["coordinate"] == DBNull.Value) ? Int32.MinValue : Convert.ToInt32(row["coordinate"]));
                     lvGene.Start = ((row["origem"] == DBNull.Value) ? Int32.MinValue : Convert.ToInt32(row["origem"]));
@@ -2420,10 +2420,19 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     lvGene.State = Gene.STATE.IN;
                     lvCreationtime = ((row["creation_tm"] == DBNull.Value) ? DateTime.MinValue : DateTime.Parse(row["creation_tm"].ToString()));
 
-                    //lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
-                    lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
+                    if((lvGene.End - lvGene.Start) > 0)
+                    {
+                        lvGene.Direction = 1;
+                    }
+                    else
+                    {
+                        lvGene.Direction = -1;
+                    }
 
-                    if(lvGene.SegmentInstance == null)
+                    //lvGene.SegmentInstance = Segment.GetCurrentSegment(lvGene.Coordinate, lvGene.Direction, lvGene.Track, out lvIndex);
+                    //lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
+
+                    if (lvGene.SegmentInstance == null)
                     {
                         lvGene.SegmentInstance = Segment.GetSegmentAt(lvLocation, lvStrUD);
                     }
@@ -2484,7 +2493,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     if (lvGene.StopLocation == null)
                     {
                         lvGene.State = Gene.STATE.UNDEF;
-                        lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate, lvGene.Direction);
+                        lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate + lvGene.Direction * (-1), lvGene.Direction);
                     }
                     else
                     {
@@ -3146,7 +3155,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         {
                             lvRes = false;
 #if DEBUG
-                            DebugLog.Logar("UpdateOffSpring => Fitness Called Num = " + mFitness.FitnessCallNum, false, pIndet: mCurrentGeneration);
+                            //DebugLog.Logar("UpdateOffSpring => Fitness Called Num = " + mFitness.FitnessCallNum, false, pIndet: mCurrentGeneration);
 #endif
                             loopState.Stop();
                             return;

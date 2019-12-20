@@ -45,8 +45,10 @@ namespace TrainOptimization
             Thread.CurrentThread.CurrentCulture = culture;
             Thread.CurrentThread.CurrentUICulture = culture;
 
+            /*
             eventLog1.Source = "TrainOptimizer";
             eventLog1.Log = "TrainOptimizerLog";
+            */
         }
 
         public void onDebug()
@@ -59,7 +61,7 @@ namespace TrainOptimization
         {
             base.OnStart(args);
 
-            eventLog1.WriteEntry("Train Optimizator iniciado !");
+            //eventLog1.WriteEntry("Train Optimizator iniciado !");
 
 #if DEBUG
             DebugLog.Logar("TrainOptimizer iniciado OnStart !", false);
@@ -122,7 +124,7 @@ namespace TrainOptimization
             else if(mInputMode.Equals("xml"))
             {
                 mTimer = new System.Timers.Timer();
-                this.mTimer.Interval = 1000;
+                this.mTimer.Interval = 60000;
                 this.mTimer.Elapsed += new ElapsedEventHandler(mTimerXML_Elapsed);
                 this.mTimer.Enabled = true;
                 this.mTimer.AutoReset = false;
@@ -164,6 +166,7 @@ namespace TrainOptimization
             Trainpat lvTrainpat = null;
             List<Trainpat> lvListPATs = null;
             Dictionary<Int64, List<Trainpat>> lvPATs = new Dictionary<long, List<Trainpat>>();
+            Dictionary<Int64, string> lvInitialSegment = new Dictionary<Int64, string>();
             string lvStrInitialLogPath = ConfigurationManager.AppSettings["LOG_PATH"] + "Logs\\";
             int lvLocation = -1;
             double lvThreshold;
@@ -174,6 +177,7 @@ namespace TrainOptimization
             int lvIndex = -1;
             int lvValue = -1;
             string lvStrMode = "";
+            string[] lvSegmentInfo; 
             DateTime lvCurrTime = DateTime.MaxValue;
 
             lvStrMode = ConfigurationManager.AppSettings["OPT_MODE"];
@@ -255,627 +259,687 @@ namespace TrainOptimization
             DebugLog.Logar("lvInitialDate = " + mInitialDate);
             DebugLog.Logar("lvFinalDate = " + mFinalDate);
 
-            lvStrFileName = Path.GetFileNameWithoutExtension(pStrFile);
-
-            XmlReader lvXmlReader = XmlReader.Create(pStrFile);
-
-            Population.LoadPriority(mTrainPriority);
-
-            lvIndex = 0;
-            while (lvXmlReader.Read())
+            try
             {
-                if (lvXmlReader.NodeType == XmlNodeType.Element)
+                lvStrFileName = Path.GetFileNameWithoutExtension(pStrFile);
+
+                XmlReader lvXmlReader = XmlReader.Create(pStrFile);
+
+                Population.LoadPriority(mTrainPriority);
+
+                lvIndex = 0;
+                while (lvXmlReader.Read())
                 {
-                    switch (lvXmlReader.Name)
+                    if (lvXmlReader.NodeType == XmlNodeType.Element)
                     {
-                        case "Segment":
-                            lvSegment = new Segment();
+                        switch (lvXmlReader.Name)
+                        {
+                            case "Segment":
+                                lvSegment = new Segment();
 
-                            if (lvXmlReader["location"] != null)
-                            {
-                                lvSegment.Location = Convert.ToInt32(lvXmlReader["location"]);
-                            }
-
-                            if (lvXmlReader["start_coordinate"] != null)
-                            {
-                                lvSegment.Start_coordinate = Convert.ToInt32(lvXmlReader["start_coordinate"]);
-                            }
-
-                            if (lvXmlReader["end_coordinate"] != null)
-                            {
-                                lvSegment.End_coordinate = Convert.ToInt32(lvXmlReader["end_coordinate"]);
-                            }
-
-                            if (lvXmlReader["segment"] != null)
-                            {
-                                lvSegment.SegmentValue = lvXmlReader["segment"];
-                            }
-
-                            if (lvXmlReader["track"] != null)
-                            {
-                                lvSegment.Track = Convert.ToInt16(lvXmlReader["track"]);
-                            }
-
-                            lvSegment.AllowSameLineMov = false;
-
-                            lvSegments.Add(lvSegment);
-
-                            if(lvSegment.SegmentValue.Equals("WT"))
-                            {
-                                lvSegment.IsSwitch = true;
-
-                                if (lvXmlReader["left_no_entrance"] != null)
+                                if (lvXmlReader["location"] != null)
                                 {
-                                    lvSegment.AddNoEntrances(lvXmlReader["left_no_entrance"], 1);
+                                    lvSegment.Location = Convert.ToInt32(lvXmlReader["location"]);
                                 }
 
-                                if (lvXmlReader["right_no_entrance"] != null)
+                                if (lvXmlReader["start_coordinate"] != null)
                                 {
-                                    lvSegment.AddNoEntrances(lvXmlReader["right_no_entrance"], -1);
+                                    lvSegment.Start_coordinate = Convert.ToInt32(lvXmlReader["start_coordinate"]);
                                 }
 
-                                lvSwitches.Add(lvSegment);
-                            }
-
-                            break;
-                        case "Train":
-                            lvGene = new Gene();
-
-                            if (lvXmlReader["train_id"] != null)
-                            {
-                                lvGene.TrainId = Convert.ToInt64(lvXmlReader["train_id"]);
-                            }
-
-                            if (lvXmlReader["name"] != null)
-                            {
-                                lvGene.TrainName = lvXmlReader["name"];
-                            }
-
-                            if (lvXmlReader["data_ocup"] != null)
-                            {
-                                lvGene.Time = DateTime.ParseExact(lvXmlReader["data_ocup"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-                                lvGene.HeadWayTime = lvGene.Time;
-
-                                if(lvGene.Time < lvCurrTime)
+                                if (lvXmlReader["end_coordinate"] != null)
                                 {
-                                    lvCurrTime = lvGene.Time;
+                                    lvSegment.End_coordinate = Convert.ToInt32(lvXmlReader["end_coordinate"]);
                                 }
-                            }
 
-                            if (lvXmlReader["direction"] != null)
-                            {
-                                lvGene.Direction = Convert.ToInt16(lvXmlReader["direction"]);
-                            }
-
-                            if (lvXmlReader["track"] != null)
-                            {
-                                lvGene.Track = Convert.ToInt16(lvXmlReader["track"]);
-                            }
-
-                            if (lvXmlReader["coordinate"] != null)
-                            {
-                                lvGene.Coordinate = Convert.ToInt32(lvXmlReader["coordinate"]);
-                            }
-
-                            if (lvXmlReader["origem"] != null)
-                            {
-                                lvGene.Start = Convert.ToInt32(lvXmlReader["origem"]);
-                            }
-
-                            if (lvXmlReader["destino"] != null)
-                            {
-                                lvGene.End = Convert.ToInt32(lvXmlReader["destino"]);
-                            }
-
-                            if (lvXmlReader["location"] != null)
-                            {
-                                lvLocation = Convert.ToInt32(lvXmlReader["location"]);
-                            }
-
-                            if (lvXmlReader["ud"] != null)
-                            {
-                                lvStrUD = lvXmlReader["ud"];
-                            }
-
-                            if (lvXmlReader["departure_time"] != null)
-                            {
-                                lvGene.DepartureTime = DateTime.ParseExact(lvXmlReader["departure_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-                            }
-
-                            lvGene.Speed = 0.0;
-                            lvGene.State = Gene.STATE.IN;
-                            lvGene.ValueWeight = Population.GetPriority(lvGene);
-
-                            lvTrainMovement = new TrainMovement();
-                            lvTrainMovement.Add(lvGene);
-
-                            lvTrainMovList.Add(lvTrainMovement);
-
-                            break;
-                        case "Plan":
-                            lvGene = new Gene();
-
-                            if (lvXmlReader["plan_id"] != null)
-                            {
-                                lvGene.TrainId = Convert.ToInt64(lvXmlReader["plan_id"]);
-                            }
-
-                            if (lvXmlReader["train_name"] != null)
-                            {
-                                lvGene.TrainName = lvXmlReader["train_name"];
-                            }
-
-                            if (lvXmlReader["origem"] != null)
-                            {
-                                lvGene.Start = Convert.ToInt32(lvXmlReader["origem"]);
-                            }
-
-                            if (lvXmlReader["destino"] != null)
-                            {
-                                lvGene.End = Convert.ToInt32(lvXmlReader["destino"]);
-                            }
-
-                            if (lvXmlReader["departure_time"] != null)
-                            {
-                                lvGene.DepartureTime = DateTime.ParseExact(lvXmlReader["departure_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-                            }
-
-                            if (lvXmlReader["direction"] != null)
-                            {
-                                lvGene.Direction = Convert.ToInt16(lvXmlReader["direction"]);
-                            }
-
-                            if (lvXmlReader["track"] != null)
-                            {
-                                lvGene.Track = Convert.ToInt16(lvXmlReader["track"]);
-                            }
-                            else
-                            {
-                                lvGene.Track = 1;
-                            }
-
-                            lvGene.Time = DateTime.MinValue;
-                            lvGene.Coordinate = lvGene.Start;
-                            lvGene.Speed = 0.0;
-                            lvGene.ValueWeight = Population.GetPriority(lvGene);
-
-                            lvTrainMovement = new TrainMovement();
-                            lvTrainMovement.Add(lvGene);
-
-                            lvPlans.Add(lvTrainMovement);
-
-                            break;
-                        case "Interdiction":
-                            lvInterdicao = new Interdicao();
-
-                            lvInterdicao.Ti_id = ++lvIndex;
-
-                            if (lvXmlReader["start_pos"] != null)
-                            {
-                                lvInterdicao.Start_pos = Convert.ToInt32(lvXmlReader["start_pos"]);
-                            }
-
-                            if (lvXmlReader["end_pos"] != null)
-                            {
-                                lvInterdicao.End_pos = Convert.ToInt32(lvXmlReader["end_pos"]);
-                            }
-
-                            if (lvXmlReader["start_time"] != null)
-                            {
-                                lvValue = Convert.ToInt32(lvXmlReader["start_time"]);
-                                lvInterdicao.Start_time = lvCurrTime.AddMinutes(lvValue);
-                                //lvInterdicao.Start_time = DateTime.ParseExact(lvXmlReader["start_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
-
-                                if (lvXmlReader["end_time"] != null)
+                                if (lvXmlReader["segment"] != null)
                                 {
-                                    lvValue = Convert.ToInt32(lvXmlReader["end_time"]);
-                                    lvInterdicao.End_time = lvInterdicao.Start_time.AddMinutes(lvValue);
+                                    lvSegment.SegmentValue = lvXmlReader["segment"];
                                 }
-                            }
 
-                            if (lvXmlReader["reason"] != null)
-                            {
-                                lvInterdicao.Reason = lvXmlReader["reason"];
-                            }
-
-                            if (lvXmlReader["ss_name"] != null)
-                            {
-                                lvInterdicao.Ss_name = lvXmlReader["ss_name"];
-                            }
-
-                            lvInterdicao.Field_interdicted = 1;
-                            lvInterdicao.Track = Segment.GetLineByUD(lvInterdicao.Ss_name);
-
-                            Interdicao.Add(lvInterdicao);
-
-                            break;
-                        case "PAT":
-                            lvTrainpat = new Trainpat();
-
-                            if (lvXmlReader["plan_id"] != null)
-                            {
-                                lvTrainId = Convert.ToInt64(lvXmlReader["plan_id"]);
-                            }
-                            else
-                            {
-                                lvTrainId = -1;
-                            }
-
-                            if (lvXmlReader["coordinate"] != null)
-                            {
-                                lvTrainpat.Coordinate = Convert.ToInt32(lvXmlReader["coordinate"]);
-                            }
-
-                            if (lvXmlReader["km"] != null)
-                            {
-                                lvTrainpat.KM = Convert.ToInt16(lvXmlReader["km"]);
-                            }
-
-                            if (lvXmlReader["duration"] != null)
-                            {
-                                lvTrainpat.Duration = Convert.ToInt16(lvXmlReader["duration"]);
-                            }
-
-                            if (lvXmlReader["definition"] != null)
-                            {
-                                lvTrainpat.Activity = Convert.ToString(lvXmlReader["definition"]);
-                            }
-
-                            if(!lvPATs.ContainsKey(lvTrainId))
-                            {
-                                lvListPATs = new List<Trainpat>();
-                                lvListPATs.Add(lvTrainpat);
-                                lvPATs.Add(lvTrainId, lvListPATs);
-                            }
-                            else
-                            {
-                                lvPATs[lvTrainId].Add(lvTrainpat);
-                            }
-
-                            break;
-                        case "TrainPerformance":
-                            break;
-                    }
-                }
-            }
-
-            if (!DateTime.TryParse(ConfigurationManager.AppSettings["INITIAL_DATE"], out mInitialDate))
-            {
-                mInitialDate = lvCurrTime.Date;
-            }
-
-            if (!DateTime.TryParse(ConfigurationManager.AppSettings["FINAL_DATE"], out mFinalDate))
-            {
-                mFinalDate = mInitialDate.Date == DateTime.Now.Date ? DateTime.Now : mInitialDate.Date.AddDays(1).AddSeconds(-1);
-            }
-
-            /* Carrega os dados em usas estruturas */
-
-            Segment.SetList(lvSegments);
-            Segment.SetListSwitch(lvSwitches);
-            StopLocation.LoadList(pStrFile);
-            Segment.LoadStopLocations((List<StopLocation>)StopLocation.GetList());
-
-            for (int i = 0; i < lvTrainMovList.Count; i++)
-            {
-                lvGene = lvTrainMovList[i].Last;
-
-                lvGene.SegmentInstance = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
-
-                if (lvGene.SegmentInstance != null)
-                {
-                    lvGene.StopLocation = lvGene.SegmentInstance.OwnerStopLocation;
-                }
-                else
-                {
-                    lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
-                }
-
-                lvStartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
-                if (lvStartStopLocation == null)
-                {
-                    lvStartStopLocation = StopLocation.GetNextStopSegment(lvGene.Start, lvGene.Direction);
-                }
-                lvGene.StartStopLocation = lvStartStopLocation;
-
-                lvEndStopLocation = StopLocation.GetCurrentStopSegment(lvGene.End, lvGene.Direction, out lvIndex);
-                if (lvEndStopLocation == null)
-                {
-                    lvEndStopLocation = StopLocation.GetNextStopSegment(lvGene.End, lvGene.Direction);
-                }
-                lvGene.EndStopLocation = lvEndStopLocation;
-
-                if (lvGene.StopLocation == null)
-                {
-                    lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate, lvGene.Direction);
-                }
-                else
-                {
-                    lvNextStopLocation = lvGene.StopLocation.GetNextStopSegment(lvGene.Direction);
-                }
-
-                DebugLog.Logar(lvGene.ToString());
-
-                if (lvNextStopLocation == null)
-                {
-                    lvTrainMovList.RemoveAt(i);
-                    i--;
-                    continue;
-                }
-                else if ((lvGene.StopLocation == lvEndStopLocation) && (lvGene.StopLocation != null))
-                {
-                    lvTrainMovList.RemoveAt(i);
-                    i--;
-                    continue;
-                }
-                else if (lvEndStopLocation != null)
-                {
-                    if (lvGene.Direction > 0)
-                    {
-                        if (lvGene.Coordinate >= lvEndStopLocation.Start_coordinate)
-                        {
-                            lvTrainMovList.RemoveAt(i);
-                            i--;
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        if (lvGene.Coordinate <= lvEndStopLocation.End_coordinate)
-                        {
-                            lvTrainMovList.RemoveAt(i);
-                            i--;
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            for (int i = 0; i < lvPlans.Count; i++)
-            {
-                lvGene = lvPlans[i].Last;
-
-                lvGene.StartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
-                if (lvGene.StartStopLocation == null)
-                {
-                    lvGene.StartStopLocation = StopLocation.GetNextStopSegment(lvGene.Start, lvGene.Direction);
-                }
-
-                lvGene.EndStopLocation = StopLocation.GetCurrentStopSegment(lvGene.End, lvGene.Direction, out lvIndex);
-                if (lvGene.EndStopLocation == null)
-                {
-                    lvGene.EndStopLocation = StopLocation.GetNextStopSegment(lvGene.End, lvGene.Direction);
-                }
-
-                lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
-
-                if (lvGene.StopLocation != null)
-                {
-                    lvSegment = lvGene.StopLocation.GetSegment(lvGene.Direction, lvGene.Track);
-                    lvGene.SegmentInstance = lvSegment;
-                    lvGene.Track = lvGene.SegmentInstance.Track;
-                }
-
-
-                DebugLog.Logar(lvGene.ToString());
-            }
-
-            DebugLog.Logar(" ");
-
-            DebugLog.EnableDebug = lvLogEnable;
-
-            if (lvTestCount >= 1)
-            {
-                for (int lvTestInd = 0; lvTestInd < lvTestCount; lvTestInd++)
-                {
-                    DebugLog.LogPath = lvStrInitialLogPath + lvStrFileName + "\\Test_" + (lvTestInd + 1) + "\\";
-                    System.IO.Directory.CreateDirectory(DebugLog.LogPath);
-
-                    lvTrainsData = new List<TrainMovement>(lvTrainMovList);
-
-                    lvPlansData = new List<TrainMovement>(lvPlans);
-
-                    try
-                    {
-                        lvFitness = new RailRoadFitness(TrainIndividual.VMA);
-                        //RailRoadFitness.ResetFitnessCall();
-                        ((RailRoadFitness)lvFitness).Population = null;
-                        lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrainsData, lvPlansData, pPATs: lvPATs);
-                        ((RailRoadFitness)lvFitness).Population = lvPopulation;
-                        lvPopulation.NicheDistance = lvNicheDistance;
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
-                    }
-
-                    if(lvStrMode.Equals("multstart"))
-                    {
-                        lvPopulation.LocalSearchAll();
-
-                        lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                        //lvPopulation.Dump(lvPopulation.GetBestIndividual());
-                        lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-                    }
-                    else if (lvStrMode.Equals("rlns"))
-                    {
-                        if (lvPopulation.UseMaxObjectiveFunctionCall())
-                        {
-                            lvPopulation.RLNS(0);
-                        }
-                        else
-                        {
-                            lvPopulation.RLNS(lvMaxGenerations);
-                        }
-
-                        lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                        //lvPopulation.Dump(lvPopulation.GetBestIndividual());
-                        lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-                    }
-                    else if (lvStrMode.Equals("grasp"))
-                    {
-                        if (lvPopulation.UseMaxObjectiveFunctionCall())
-                        {
-                            lvPopulation.GRASP(lvThreshold);
-                        }
-                        else
-                        {
-                            lvPopulation.GRASP(lvThreshold, lvMaxGenerations);
-                        }
-
-                        lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                        //lvPopulation.Dump(lvPopulation.GetBestIndividual());
-                        lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-                    }
-                    else
-                    {
-                        TrainIndividual.IDLog = 0;
-                        /*
-                        lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                        if (lvGeneIndividual != null)
-                        {
-                            lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-                        }
-                        */
-
-                        /* -------------------- Debug only -------------------- */
-                        //lvLogEnable = true;
-                        /* ---------------------------------------------------- */
-
-                        DebugLog.EnableDebug = true;
-                        DebugLog.Logar(" ");
-                        DebugLog.Logar("Individuos = " + lvPopulation.Count);
-                        DebugLog.Logar(" ");
-                        DebugLog.EnableDebug = lvLogEnable;
-
-                        //((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-
-                        if (lvPopulation.UseMaxObjectiveFunctionCall())
-                        {
-                            lvIndex = -1;
-                            while (!lvPopulation.HasMaxObjectiveFunctionCallReached())
-                            {
-                                //TrainIndividual.IDLog = ++lvIndex;
-                                lvIndex++;
-
-                                DebugLog.EnableDebug = true;
-                                DebugLog.Logar("Generation = " + lvIndex);
-                                DebugLog.EnableDebug = lvLogEnable;
-                                lvRes = lvPopulation.NextGeneration();
-
-                                //lvPopulation.dump(lvPopulation.GetBestIndividual());
-
-                                //lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
-                                //lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-
-                                if (!lvRes || (lvPopulation.Count < lvPopulationSize))
+                                if (lvXmlReader["track"] != null)
                                 {
-                                    break;
+                                    lvSegment.Track = Convert.ToInt16(lvXmlReader["track"]);
                                 }
-                            }
-                        }
-                        else
-                        {
-                            for (int i = 0; i < lvMaxGenerations; i++)
-                            {
-                                //TrainIndividual.IDLog = i;
 
-                                DebugLog.EnableDebug = true;
-                                DebugLog.Logar("Generation = " + i);
-                                DebugLog.EnableDebug = lvLogEnable;
-                                lvRes = lvPopulation.NextGeneration();
+                                lvSegment.AllowSameLineMov = false;
 
-                                ((RailRoadFitness)lvFitness).HeaderResult += "|Ger " + (i + 1);
-                                ((RailRoadFitness)lvFitness).LineResult += "|" + lvPopulation.GetBestIndividual().GetFitness();
+                                lvSegments.Add(lvSegment);
 
-                                if (!lvRes)
+                                if (lvSegment.SegmentValue.Equals("WT"))
                                 {
-                                    break;
+                                    lvSegment.IsSwitch = true;
+
+                                    if (lvXmlReader["left_no_entrance"] != null)
+                                    {
+                                        lvSegment.AddNoEntrances(lvXmlReader["left_no_entrance"], 1);
+                                    }
+
+                                    if (lvXmlReader["right_no_entrance"] != null)
+                                    {
+                                        lvSegment.AddNoEntrances(lvXmlReader["right_no_entrance"], -1);
+                                    }
+
+                                    lvSwitches.Add(lvSegment);
+                                }
+
+                                break;
+                            case "Train":
+                                lvGene = new Gene();
+
+                                if (lvXmlReader["train_id"] != null)
+                                {
+                                    lvGene.TrainId = Convert.ToInt64(lvXmlReader["train_id"]);
+                                }
+
+                                if (lvXmlReader["name"] != null)
+                                {
+                                    lvGene.TrainName = lvXmlReader["name"];
+                                }
+
+                                if (lvXmlReader["data_ocup"] != null)
+                                {
+                                    lvGene.Time = DateTime.ParseExact(lvXmlReader["data_ocup"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                    lvGene.HeadWayTime = lvGene.Time;
+
+                                    if (lvGene.Time < lvCurrTime)
+                                    {
+                                        lvCurrTime = lvGene.Time;
+                                    }
                                 }
 
                                 /*
-                                ((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-                                lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                                if (lvXmlReader["direction"] != null)
+                                {
+                                    lvGene.Direction = Convert.ToInt16(lvXmlReader["direction"]);
+                                }
                                 */
+
+                                if (lvXmlReader["track"] != null)
+                                {
+                                    lvGene.Track = Convert.ToInt16(lvXmlReader["track"]);
+                                }
+
+                                if (lvXmlReader["coordinate"] != null)
+                                {
+                                    lvGene.Coordinate = Convert.ToInt32(lvXmlReader["coordinate"]);
+                                }
+
+                                if (lvXmlReader["origem"] != null)
+                                {
+                                    lvGene.Start = Convert.ToInt32(lvXmlReader["origem"]);
+                                }
+
+                                if (lvXmlReader["destino"] != null)
+                                {
+                                    lvGene.End = Convert.ToInt32(lvXmlReader["destino"]);
+                                }
+
+                                if (lvXmlReader["location"] != null)
+                                {
+                                    lvLocation = Convert.ToInt32(lvXmlReader["location"]);
+                                }
+
+                                if (lvXmlReader["ud"] != null)
+                                {
+                                    lvStrUD = lvXmlReader["ud"];
+                                }
+
+                                if (lvXmlReader["departure_time"] != null)
+                                {
+                                    lvGene.DepartureTime = DateTime.ParseExact(lvXmlReader["departure_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                }
+
+                                if ((lvGene.End - lvGene.Start) > 0)
+                                {
+                                    lvGene.Direction = 1;
+                                }
+                                else
+                                {
+                                    lvGene.Direction = -1;
+                                }
+
+                                if (!lvInitialSegment.ContainsKey(lvGene.TrainId))
+                                {
+                                    lvInitialSegment.Add(lvGene.TrainId, lvLocation + "." + lvStrUD);
+                                }
+
+                                lvGene.Speed = 0.0;
+                                lvGene.State = Gene.STATE.IN;
+                                lvGene.ValueWeight = Population.GetPriority(lvGene);
+
+                                lvTrainMovement = new TrainMovement();
+                                lvTrainMovement.Add(lvGene);
+
+                                lvTrainMovList.Add(lvTrainMovement);
+
+                                break;
+                            case "Plan":
+                                lvGene = new Gene();
+
+                                if (lvXmlReader["plan_id"] != null)
+                                {
+                                    lvGene.TrainId = Convert.ToInt64(lvXmlReader["plan_id"]);
+                                }
+
+                                if (lvXmlReader["train_name"] != null)
+                                {
+                                    lvGene.TrainName = lvXmlReader["train_name"];
+                                }
+
+                                if (lvXmlReader["origem"] != null)
+                                {
+                                    lvGene.Start = Convert.ToInt32(lvXmlReader["origem"]);
+                                }
+
+                                if (lvXmlReader["destino"] != null)
+                                {
+                                    lvGene.End = Convert.ToInt32(lvXmlReader["destino"]);
+                                }
+
+                                if (lvXmlReader["departure_time"] != null)
+                                {
+                                    lvGene.DepartureTime = DateTime.ParseExact(lvXmlReader["departure_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                }
+
+                                /*
+                                if (lvXmlReader["direction"] != null)
+                                {
+                                    lvGene.Direction = Convert.ToInt16(lvXmlReader["direction"]);
+                                }
+                                */
+
+                                if (lvXmlReader["track"] != null)
+                                {
+                                    lvGene.Track = Convert.ToInt16(lvXmlReader["track"]);
+                                }
+                                else
+                                {
+                                    lvGene.Track = 1;
+                                }
+
+                                if ((lvGene.End - lvGene.Start) > 0)
+                                {
+                                    lvGene.Direction = 1;
+                                }
+                                else
+                                {
+                                    lvGene.Direction = -1;
+                                }
+
+                                lvGene.Time = DateTime.MinValue;
+                                lvGene.Coordinate = lvGene.Start;
+                                lvGene.Speed = 0.0;
+                                lvGene.ValueWeight = Population.GetPriority(lvGene);
+
+                                lvTrainMovement = new TrainMovement();
+                                lvTrainMovement.Add(lvGene);
+
+                                lvPlans.Add(lvTrainMovement);
+
+                                break;
+                            case "Interdiction":
+                                lvInterdicao = new Interdicao();
+
+                                lvInterdicao.Ti_id = ++lvIndex;
+
+                                if (lvXmlReader["start_pos"] != null)
+                                {
+                                    lvInterdicao.Start_pos = Convert.ToInt32(lvXmlReader["start_pos"]);
+                                }
+
+                                if (lvXmlReader["end_pos"] != null)
+                                {
+                                    lvInterdicao.End_pos = Convert.ToInt32(lvXmlReader["end_pos"]);
+                                }
+
+                                if (lvXmlReader["start_time"] != null)
+                                {
+                                    lvValue = Convert.ToInt32(lvXmlReader["start_time"]);
+                                    lvInterdicao.Start_time = lvCurrTime.AddMinutes(lvValue);
+                                    //lvInterdicao.Start_time = DateTime.ParseExact(lvXmlReader["start_time"], "dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+
+                                    if (lvXmlReader["duration"] != null)
+                                    {
+                                        lvValue = Convert.ToInt32(lvXmlReader["duration"]);
+                                        lvInterdicao.End_time = lvInterdicao.Start_time.AddMinutes(lvValue);
+                                    }
+
+                                    if(lvInterdicao.End_time < lvInterdicao.Start_time)
+                                    {
+                                        lvInterdicao.End_time = lvInterdicao.Start_time.AddHours(1);
+                                    }
+                                }
+                                else
+                                {
+                                    lvInterdicao.Start_time = lvCurrTime.AddHours(1);
+                                    if (lvXmlReader["duration"] != null)
+                                    {
+                                        lvValue = Convert.ToInt32(lvXmlReader["duration"]);
+                                        lvInterdicao.End_time = lvInterdicao.Start_time.AddMinutes(lvValue);
+                                    }
+
+                                    if (lvInterdicao.End_time < lvInterdicao.Start_time)
+                                    {
+                                        lvInterdicao.End_time = lvInterdicao.Start_time.AddHours(1);
+                                    }
+                                }
+
+                                DebugLog.Logar(lvInterdicao.ToString());
+
+                                if (lvXmlReader["reason"] != null)
+                                {
+                                    lvInterdicao.Reason = lvXmlReader["reason"];
+                                }
+
+                                if (lvXmlReader["ss_name"] != null)
+                                {
+                                    lvInterdicao.Ss_name = lvXmlReader["ss_name"];
+                                }
+
+                                lvInterdicao.Field_interdicted = 1;
+                                lvInterdicao.Track = Segment.GetLineByUD(lvInterdicao.Ss_name);
+
+                                Interdicao.Add(lvInterdicao);
+
+                                break;
+                            case "PAT":
+                                lvTrainpat = new Trainpat();
+
+                                if (lvXmlReader["plan_id"] != null)
+                                {
+                                    lvTrainId = Convert.ToInt64(lvXmlReader["plan_id"]);
+                                }
+                                else
+                                {
+                                    lvTrainId = -1;
+                                }
+
+                                if (lvXmlReader["coordinate"] != null)
+                                {
+                                    lvTrainpat.Coordinate = Convert.ToInt32(lvXmlReader["coordinate"]);
+                                }
+
+                                if (lvXmlReader["km"] != null)
+                                {
+                                    lvTrainpat.KM = Convert.ToInt16(lvXmlReader["km"]);
+                                }
+
+                                if (lvXmlReader["duration"] != null)
+                                {
+                                    lvTrainpat.Duration = Convert.ToInt16(lvXmlReader["duration"]);
+                                }
+
+                                if (lvXmlReader["definition"] != null)
+                                {
+                                    lvTrainpat.Activity = Convert.ToString(lvXmlReader["definition"]);
+                                }
+
+                                if (!lvPATs.ContainsKey(lvTrainId))
+                                {
+                                    lvListPATs = new List<Trainpat>();
+                                    lvListPATs.Add(lvTrainpat);
+                                    lvPATs.Add(lvTrainId, lvListPATs);
+                                }
+                                else
+                                {
+                                    lvPATs[lvTrainId].Add(lvTrainpat);
+                                }
+
+                                break;
+                            case "TrainPerformance":
+                                break;
+                        }
+                    }
+                }
+
+                if (!DateTime.TryParse(ConfigurationManager.AppSettings["INITIAL_DATE"], out mInitialDate))
+                {
+                    mInitialDate = lvCurrTime.Date;
+                }
+
+                if (!DateTime.TryParse(ConfigurationManager.AppSettings["FINAL_DATE"], out mFinalDate))
+                {
+                    mFinalDate = mInitialDate.Date == DateTime.Now.Date ? DateTime.Now : mInitialDate.Date.AddDays(1).AddSeconds(-1);
+                }
+
+                /* Carrega os dados em usas estruturas */
+
+                Segment.SetList(lvSegments);
+                Segment.SetListSwitch(lvSwitches);
+                StopLocation.LoadList(pStrFile);
+                Segment.LoadStopLocations((List<StopLocation>)StopLocation.GetList());
+
+                for (int i = 0; i < lvTrainMovList.Count; i++)
+                {
+                    lvGene = lvTrainMovList[i].Last;
+
+                    lvLocation = -1;
+                    lvStrUD = "";
+
+                    if (lvInitialSegment.ContainsKey(lvGene.TrainId))
+                    {
+                        lvSegmentInfo = lvInitialSegment[lvGene.TrainId].Split('.');
+
+                        if(lvSegmentInfo.Length >= 2)
+                        {
+                            Int32.TryParse(lvSegmentInfo[0], out lvLocation);
+                            lvStrUD = lvSegmentInfo[1];
+
+                            lvGene.SegmentInstance = Segment.GetSegmentAt(lvLocation, lvStrUD);
+
+                            if(lvGene.SegmentInstance == null)
+                            {
+                                lvTrainMovList.RemoveAt(i);
                             }
                         }
+                    }
 
-                        lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                    if (lvGene.SegmentInstance != null)
+                    {
+                        lvGene.StopLocation = lvGene.SegmentInstance.OwnerStopLocation;
+                    }
 
-                        if (lvGeneIndividual != null)
+                    lvStartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
+                    if (lvStartStopLocation == null)
+                    {
+                        lvStartStopLocation = StopLocation.GetNextStopSegment(lvGene.Start, lvGene.Direction);
+                    }
+                    lvGene.StartStopLocation = lvStartStopLocation;
+
+                    lvEndStopLocation = StopLocation.GetCurrentStopSegment(lvGene.End, lvGene.Direction, out lvIndex);
+                    if (lvEndStopLocation == null)
+                    {
+                        lvEndStopLocation = StopLocation.GetNextStopSegment(lvGene.End, lvGene.Direction);
+                    }
+                    lvGene.EndStopLocation = lvEndStopLocation;
+
+                    if (lvGene.StopLocation == null)
+                    {
+                        lvNextStopLocation = StopLocation.GetNextStopSegment(lvGene.Coordinate + lvGene.Direction * (-1), lvGene.Direction);
+                    }
+                    else
+                    {
+                        lvNextStopLocation = lvGene.StopLocation.GetNextStopSegment(lvGene.Direction);
+                    }
+
+                    DebugLog.Logar(lvGene.ToString());
+
+                    if (lvNextStopLocation == null)
+                    {
+                        lvTrainMovList.RemoveAt(i);
+                        i--;
+                        continue;
+                    }
+                    else if ((lvGene.StopLocation == lvEndStopLocation) && (lvGene.StopLocation != null))
+                    {
+                        lvTrainMovList.RemoveAt(i);
+                        i--;
+                        continue;
+                    }
+                    else if (lvEndStopLocation != null)
+                    {
+                        if (lvGene.Direction > 0)
                         {
-                            //DebugLog.EnableDebug = true;
-                            //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
-                            //DebugLog.Logar("Melhor = \n" + lvGeneIndividual.ToStringAnalyse(), false);
-
-                            //DebugLog.Logar("Melhor Flot = " + lvGeneIndividual.GetFlotSeries(), false);
-
-                            lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
-
-                            lvPopulation.SaveBestIndividuals();
-                            //lvGeneIndividual.Serialize();
-                            //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
-                            //DebugLog.EnableDebug = lvLogEnable;
+                            if (lvGene.Coordinate >= lvEndStopLocation.Start_coordinate)
+                            {
+                                lvTrainMovList.RemoveAt(i);
+                                i--;
+                                continue;
+                            }
                         }
                         else
                         {
-                            DebugLog.Logar("A populacao nao possui individuos !", false);
+                            if (lvGene.Coordinate <= lvEndStopLocation.End_coordinate)
+                            {
+                                lvTrainMovList.RemoveAt(i);
+                                i--;
+                                continue;
+                            }
                         }
                     }
-
-                    if (lvTestInd == 0)
-                    {
-                        ((RailRoadFitness)lvFitness).HeaderResult += "|Arquivo";
-                        ((RailRoadFitness)lvFitness).HeaderResult += "|Local Search Call";
-                        DebugLog.LogInfo(((RailRoadFitness)lvFitness).HeaderResult, lvStrInitialLogPath + lvStrFileName + "\\result.txt");
-                    }
-                    ((RailRoadFitness)lvFitness).LineResult += "|" + lvGeneIndividual.GetUniqueId();
-                    ((RailRoadFitness)lvFitness).LineResult += "|" + lvPopulation.HillClimbingCallReg;
-                    DebugLog.LogInfo(((RailRoadFitness)lvFitness).LineResult, lvStrInitialLogPath + lvStrFileName + "\\result.txt");
-
-                    lvPopulation.Clear();
                 }
-            }
-            else
-            {
-                Population.LoadPriority(mTrainPriority);
-                lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrainMovList, lvPlans);
-                lvPopulation.NicheDistance = lvNicheDistance;
 
-                TrainIndividual.IDLog = 0;
+                for (int i = 0; i < lvPlans.Count; i++)
+                {
+                    lvGene = lvPlans[i].Last;
 
-                DebugLog.EnableDebug = true;
+                    lvGene.StartStopLocation = StopLocation.GetCurrentStopSegment(lvGene.Start, lvGene.Direction, out lvIndex);
+                    if (lvGene.StartStopLocation == null)
+                    {
+                        lvGene.StartStopLocation = StopLocation.GetNextStopSegment(lvGene.Start, lvGene.Direction);
+                    }
+
+                    lvGene.EndStopLocation = StopLocation.GetCurrentStopSegment(lvGene.End, lvGene.Direction, out lvIndex);
+                    if (lvGene.EndStopLocation == null)
+                    {
+                        lvGene.EndStopLocation = StopLocation.GetNextStopSegment(lvGene.End, lvGene.Direction);
+                    }
+
+                    lvGene.StopLocation = StopLocation.GetCurrentStopSegment(lvGene.Coordinate, lvGene.Direction, out lvIndex);
+
+                    if (lvGene.StopLocation != null)
+                    {
+                        lvSegment = lvGene.StopLocation.GetSegment(lvGene.Direction, lvGene.Track);
+                        lvGene.SegmentInstance = lvSegment;
+                        lvGene.Track = lvGene.SegmentInstance.Track;
+                    }
+
+
+                    DebugLog.Logar(lvGene.ToString());
+                }
+
                 DebugLog.Logar(" ");
-                DebugLog.Logar("Individuos = " + lvPopulation.Count);
-                DebugLog.Logar(" ");
+
                 DebugLog.EnableDebug = lvLogEnable;
 
-                for (int i = 0; i < lvMaxGenerations; i++)
+                if (lvTestCount >= 1)
                 {
-                    //TrainIndividual.IDLog = i;
+                    for (int lvTestInd = 0; lvTestInd < lvTestCount; lvTestInd++)
+                    {
+                        DebugLog.LogPath = lvStrInitialLogPath + lvStrFileName + "\\Test_" + (lvTestInd + 1) + "\\";
+                        System.IO.Directory.CreateDirectory(DebugLog.LogPath);
+
+                        lvTrainsData = new List<TrainMovement>(lvTrainMovList);
+
+                        lvPlansData = new List<TrainMovement>(lvPlans);
+
+                        try
+                        {
+                            lvFitness = new RailRoadFitness(TrainIndividual.VMA);
+                            //RailRoadFitness.ResetFitnessCall();
+                            ((RailRoadFitness)lvFitness).Population = null;
+                            lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrainsData, lvPlansData, pPATs: lvPATs);
+                            ((RailRoadFitness)lvFitness).Population = lvPopulation;
+                            lvPopulation.NicheDistance = lvNicheDistance;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
+                        }
+
+                        if (lvStrMode.Equals("multstart"))
+                        {
+                            lvPopulation.LocalSearchAll();
+
+                            lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                            //lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                            lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
+                        }
+                        else if (lvStrMode.Equals("rlns"))
+                        {
+                            if (lvPopulation.UseMaxObjectiveFunctionCall())
+                            {
+                                lvPopulation.RLNS(0);
+                            }
+                            else
+                            {
+                                lvPopulation.RLNS(lvMaxGenerations);
+                            }
+
+                            lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                            //lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                            lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
+                        }
+                        else if (lvStrMode.Equals("grasp"))
+                        {
+                            if (lvPopulation.UseMaxObjectiveFunctionCall())
+                            {
+                                lvPopulation.GRASP(lvThreshold);
+                            }
+                            else
+                            {
+                                lvPopulation.GRASP(lvThreshold, lvMaxGenerations);
+                            }
+
+                            lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                            //lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                            lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
+                        }
+                        else
+                        {
+                            TrainIndividual.IDLog = 0;
+                            /*
+                            lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                            if (lvGeneIndividual != null)
+                            {
+                                lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+                            }
+                            */
+
+                            /* -------------------- Debug only -------------------- */
+                            //lvLogEnable = true;
+                            /* ---------------------------------------------------- */
+
+                            DebugLog.EnableDebug = true;
+                            DebugLog.Logar(" ");
+                            DebugLog.Logar("Individuos = " + lvPopulation.Count);
+                            DebugLog.Logar(" ");
+                            DebugLog.EnableDebug = lvLogEnable;
+
+                            //((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+
+                            if (lvPopulation.UseMaxObjectiveFunctionCall())
+                            {
+                                lvIndex = -1;
+                                while (!lvPopulation.HasMaxObjectiveFunctionCallReached())
+                                {
+                                    //TrainIndividual.IDLog = ++lvIndex;
+                                    lvIndex++;
+
+                                    DebugLog.EnableDebug = true;
+                                    DebugLog.Logar("Generation = " + lvIndex);
+                                    DebugLog.EnableDebug = lvLogEnable;
+                                    lvRes = lvPopulation.NextGeneration();
+
+                                    //lvPopulation.dump(lvPopulation.GetBestIndividual());
+
+                                    //lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+                                    //lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+
+                                    if (!lvRes || (lvPopulation.Count < lvPopulationSize))
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < lvMaxGenerations; i++)
+                                {
+                                    //TrainIndividual.IDLog = i;
+
+                                    DebugLog.EnableDebug = true;
+                                    DebugLog.Logar("Generation = " + i);
+                                    DebugLog.EnableDebug = lvLogEnable;
+                                    lvRes = lvPopulation.NextGeneration();
+
+                                    ((RailRoadFitness)lvFitness).HeaderResult += "|Ger " + (i + 1);
+                                    ((RailRoadFitness)lvFitness).LineResult += "|" + lvPopulation.GetBestIndividual().GetFitness();
+
+                                    if (!lvRes)
+                                    {
+                                        break;
+                                    }
+
+                                    /*
+                                    ((TrainIndividual)lvPopulation.GetBestIndividual()).GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+                                    lvPopulation.Dump(lvPopulation.GetBestIndividual());
+                                    */
+                                }
+                            }
+
+                            lvGeneIndividual = (TrainIndividual)lvPopulation.GetBestIndividual();
+
+                            if (lvGeneIndividual != null)
+                            {
+                                //DebugLog.EnableDebug = true;
+                                //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
+                                //DebugLog.Logar("Melhor = \n" + lvGeneIndividual.ToStringAnalyse(), false);
+
+                                //DebugLog.Logar("Melhor Flot = " + lvGeneIndividual.GetFlotSeries(), false);
+
+                                lvGeneIndividual.GenerateFlotFiles(lvStrInitialLogPath + lvStrFileName + "\\");
+
+                                lvPopulation.SaveBestIndividuals();
+                                //lvGeneIndividual.Serialize();
+                                //DebugLog.Logar("Melhor = " + lvGeneIndividual.ToStringAnalyse(), false);
+                                //DebugLog.EnableDebug = lvLogEnable;
+                            }
+                            else
+                            {
+                                DebugLog.Logar("A populacao nao possui individuos !", false);
+                            }
+                        }
+
+                        if (lvTestInd == 0)
+                        {
+                            ((RailRoadFitness)lvFitness).HeaderResult += "|Arquivo";
+                            ((RailRoadFitness)lvFitness).HeaderResult += "|Local Search Call";
+                            DebugLog.LogInfo(((RailRoadFitness)lvFitness).HeaderResult, lvStrInitialLogPath + lvStrFileName + "\\result.txt");
+                        }
+                        ((RailRoadFitness)lvFitness).LineResult += "|" + lvGeneIndividual.GetUniqueId();
+                        ((RailRoadFitness)lvFitness).LineResult += "|" + lvPopulation.HillClimbingCallReg;
+                        DebugLog.LogInfo(((RailRoadFitness)lvFitness).LineResult, lvStrInitialLogPath + lvStrFileName + "\\result.txt");
+
+                        lvPopulation.Clear();
+                    }
+                }
+                else
+                {
+                    lvFitness = new RailRoadFitness(TrainIndividual.VMA);
+                    Population.LoadPriority(mTrainPriority);
+                    lvPopulation = new Population(lvFitness, lvPopulationSize, lvMutationRate, mCrossOverPoints, lvTrainMovList, lvPlans);
+                    lvPopulation.NicheDistance = lvNicheDistance;
+
+                    TrainIndividual.IDLog = 0;
 
                     DebugLog.EnableDebug = true;
-                    DebugLog.Logar("Generation = " + i);
+                    DebugLog.Logar(" ");
+                    DebugLog.Logar("Individuos = " + lvPopulation.Count);
+                    DebugLog.Logar(" ");
                     DebugLog.EnableDebug = lvLogEnable;
-                    lvPopulation.NextGeneration();
-                    //lvPopulation.Dump(lvPopulation.GetIndividualAt(0));
+
+                    /*
+                    for (int i = 0; i < lvMaxGenerations; i++)
+                    {
+                        //TrainIndividual.IDLog = i;
+
+    //                    DebugLog.EnableDebug = true;
+    //                    DebugLog.Logar("Generation = " + i);
+    //                    DebugLog.EnableDebug = lvLogEnable;
+                        lvPopulation.NextGeneration();
+                        //lvPopulation.Dump(lvPopulation.GetIndividualAt(0));
+                    }
+                    */
+                    lvGeneIndividual = (TrainIndividual)lvPopulation.GetIndividualAt(0);
                 }
-
-                lvGeneIndividual = (TrainIndividual)lvPopulation.GetIndividualAt(0);
-
-                if (lvGeneIndividual != null)
-                {
-                    DebugLog.EnableDebug = true;
-                    DebugLog.Logar("Melhor = " + lvGeneIndividual.ToString(), false);
-
-                    lvPopulation.SaveBestIndividuals();
-                    //lvGeneIndividual.GenerateFlotFiles(DebugLog.LogPath);
-
-                    //lvGeneIndividual.Serialize();
-                    DebugLog.EnableDebug = lvLogEnable;
-                }
+                lvPopulation.Clear();
             }
-            lvPopulation.Clear();
+            catch (Exception ex)
+            {
+                DebugLog.Logar(ex, false);
+            }
         }
 
         void mTimerXML_Elapsed(object sender, ElapsedEventArgs e)
@@ -888,6 +952,7 @@ namespace TrainOptimization
                 ProcessRailWay(lvInputFile);
             }
 
+            /*
             lvInputFile = ConfigurationManager.AppSettings["INPUT_FILE_2"];
             if (!String.IsNullOrEmpty(lvInputFile))
             {
@@ -911,6 +976,7 @@ namespace TrainOptimization
             {
                 ProcessRailWay(lvInputFile);
             }
+            */
         }
 
         void mTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -1219,7 +1285,7 @@ namespace TrainOptimization
 #else
             DebugLog.Save("TrainOptimizer finalizado OnStop !");
 #endif
-            eventLog1.WriteEntry("TrainOptimizer finalizado !");
+            //eventLog1.WriteEntry("TrainOptimizer finalizado !");
         }
 
         protected override void OnPause()
@@ -1232,7 +1298,7 @@ namespace TrainOptimization
             DebugLog.Save("TrainOptimizer interrompido OnPause !");
 #endif
 
-            eventLog1.WriteEntry("TrainOptimizer interrompido !");
+            //eventLog1.WriteEntry("TrainOptimizer interrompido !");
         }
 
         protected override void OnContinue()
@@ -1245,7 +1311,7 @@ namespace TrainOptimization
             DebugLog.Save("TrainOptimizer resumido OnContinue !");
 #endif
 
-            eventLog1.WriteEntry("TrainOptimizer resumido !");
+            //eventLog1.WriteEntry("TrainOptimizer resumido !");
         }
     }
 }

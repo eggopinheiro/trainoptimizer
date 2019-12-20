@@ -474,7 +474,7 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
             }
             else
             {
-                for(int i = lvMiddle-1; i>=0; i--)
+                for(int i = lvMiddle - 1; i>=0; i--)
                 {
                     lvSegment = mListSegment[i];
 

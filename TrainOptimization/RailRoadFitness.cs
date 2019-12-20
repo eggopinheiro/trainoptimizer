@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Web;
 using System.Configuration;
 
@@ -135,6 +136,7 @@ public class RailRoadFitness : IFitness<TrainMovement>
                         if (lvDicTrainTime.ContainsKey(lvGene.TrainId))
                         {
                             lvElapsedTime = (lvGene.HeadWayTime - lvDicTrainTime[lvGene.TrainId]).TotalHours;
+                            DebugLog.Logar("lvElapsedTime = " + lvElapsedTime + " for " + lvGene, false, pIndet: TrainIndividual.IDLog);
                             if (lvElapsedTime > 0)
                             {
                                 lvRes += lvGene.ValueWeight * Math.Pow(2.0, lvElapsedTime);
@@ -235,9 +237,44 @@ public class RailRoadFitness : IFitness<TrainMovement>
                 }
             }
 
+            /* Apenas para log e teste */
+            Gene lvGen;
+            double lvElapsedTm = 0.0;
+            Dictionary<Int64, DateTime> lvDcTrainTime = new Dictionary<Int64, DateTime>();
+
+            foreach (TrainMovement lvTrainMv in pIndividual)
+            {
+                for (int i = 0; i < lvTrainMv.Count; i++)
+                {
+                    lvGen = lvTrainMv[i];
+
+                    if (lvGen.State == Gene.STATE.IN)
+                    {
+                        if (!lvDcTrainTime.ContainsKey(lvGen.TrainId))
+                        {
+                            lvDcTrainTime.Add(lvGen.TrainId, lvGen.HeadWayTime);
+                        }
+                        else
+                        {
+                            lvDcTrainTime[lvGen.TrainId] = lvGen.HeadWayTime;
+                        }
+                    }
+                    else if (lvGen.State == Gene.STATE.OUT)
+                    {
+                        if (lvDcTrainTime.ContainsKey(lvGen.TrainId))
+                        {
+                            lvElapsedTm = (lvGen.HeadWayTime - lvDcTrainTime[lvGen.TrainId]).TotalHours;
+                            DebugLog.Logar("lvElapsedTime = " + lvElapsedTm + " for " + lvGen, false, pIndet: TrainIndividual.IDLog);
+                        }
+                    }
+                }
+            }
+            /* ----------------------------------------------- */
+
             foreach (FitnessElement lvFitnessElem in lvDicTrainTime.Values)
             {
                 lvTotalTime = (lvFitnessElem.EndTime - lvFitnessElem.InitialTime).TotalHours;
+                DebugLog.Logar("lvTotalTime = " + lvTotalTime + " for " + lvFitnessElem.CurrentGene, false, pIndet: TrainIndividual.IDLog);
                 if (lvFitnessElem.Optimun > 0)
                 {
                     if (lvFitnessElement.HasMinTimeTarget)
@@ -517,5 +554,6 @@ public class RailRoadFitness : IFitness<TrainMovement>
                 return lvHashCode;
             }
         }
+
     }
 }
