@@ -29,6 +29,8 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
     protected Dictionary<int, ISet<int>> mLeftDependency = new Dictionary<int, ISet<int>>();
     protected Dictionary<int, ISet<int>> mRightDependency = new Dictionary<int, ISet<int>>();
     protected ISet<string> mNoStopSet;
+    protected bool mHasForwardDirection = false;
+    protected bool mHasBackwardDirection = false;
     private const int CSIDES = 2;
 
     public StopLocation()
@@ -750,6 +752,7 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         string[] lvVarElements;
         int lvKey;
         int lvValue;
+        int lvDirection;
 
         mListStopLoc = new List<StopLocation>();
 
@@ -864,6 +867,18 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
                                     if (lvElem.Length > 0)
                                     {
                                         lvStopLocation.NoStopSet.Add(lvElem);
+
+                                        if (int.TryParse(lvElem.Substring(1), out lvDirection))
+                                        {
+                                            if((lvDirection > 0) && !lvStopLocation.HasForwardDirection)
+                                            {
+                                                lvStopLocation.HasForwardDirection = true;
+                                            }
+                                            else if((lvDirection < 0) && !lvStopLocation.HasBackwardDirection)
+                                            {
+                                                lvStopLocation.HasBackwardDirection = true;
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1477,6 +1492,32 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         get
         {
             return mNoStopSet;
+        }
+    }
+
+    public bool HasForwardDirection
+    {
+        get
+        {
+            return mHasForwardDirection;
+        }
+
+        set
+        {
+            mHasForwardDirection = value;
+        }
+    }
+
+    public bool HasBackwardDirection
+    {
+        get
+        {
+            return mHasBackwardDirection;
+        }
+
+        set
+        {
+            mHasBackwardDirection = value;
         }
     }
 

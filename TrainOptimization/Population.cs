@@ -2900,6 +2900,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         double lvFitnessDistance = 0.0;
         IIndividual<TrainMovement> lvCurrentIndividual = null;
         Cluster lvCluster = null;
+        bool lvLogEnabled = DebugLog.EnableDebug;
 
         if (mIndividuals.Count == 0)
         {
@@ -3044,6 +3045,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    DebugLog.EnableDebug = true;
                     DebugLog.Logar("mClustersCenter.Count => " + mClustersCenter.Count, false, pIndet: TrainIndividual.IDLog);
 
                     DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
@@ -3052,6 +3055,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         DebugLog.Logar("lvIndv " + lvIndv.GetUniqueId() + " = " + lvIndv.Fitness, false, pIndet: TrainIndividual.IDLog);
                     }
                     DebugLog.Logar(" ", false, pIndet: TrainIndividual.IDLog);
+                    DebugLog.EnableDebug = lvLogEnabled;
+#endif
 
                     DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
                 }
@@ -3483,10 +3488,22 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         int lvQueueCount = pQueue.Count;
         DateTime lvTimeLine = DateTime.MaxValue;
 
+        bool lvIsLogEnables = DebugLog.EnableDebug;
+
         for (int i = 0; i < lvQueueCount; i++)
         {
             lvTrainMovement = pQueue.Dequeue();
-            lvTrainMovRes = pIndividual.ProcessGene(lvTrainMovement, lvTimeLine);
+
+#if DEBUG
+            if (DebugLog.EnableDebug)
+            {
+                DebugLog.EnableDebug = true;
+                DebugLog.Logar("Tentando AddFromQueue.MoveTrain(" + lvTrainMovement + ")");
+                DebugLog.EnableDebug = lvIsLogEnables;
+            }
+#endif
+
+            lvTrainMovRes = pIndividual.MoveTrain(lvTrainMovement, lvTimeLine);
             if (lvTrainMovRes != null)
             {
                 if (pHashRef != null)
@@ -3496,7 +3513,19 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             }
             else
             {
-                pQueue.Enqueue(lvTrainMovement);
+#if DEBUG
+                if (DebugLog.EnableDebug)
+                {
+                    DebugLog.EnableDebug = true;
+                    DebugLog.Logar("TpQueue.Enqueue(lvTrainMovement)");
+                    DebugLog.EnableDebug = lvIsLogEnables;
+                }
+#endif
+
+                if (!pIndividual.hasArrived(lvTrainMovement.Last.TrainId))
+                {
+                    pQueue.Enqueue(lvTrainMovement);
+                }
             }
         }
     }
@@ -3523,10 +3552,10 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         pSon = null;
         pDaughter = null;
 
-        bool lvIsLogEnables = true;
+        bool lvIsLogEnables = DebugLog.EnableDebug;
 
 #if DEBUG
-        DebugLog.EnableDebug = lvIsLogEnables;
+        DebugLog.EnableDebug = true;
         DebugLog.Logar(" ------------------------------------------ DoCrossOver  ------------------------------------------", pIndet: TrainIndividual.IDLog);
         DebugLog.EnableDebug = lvIsLogEnables;
 #endif
@@ -3605,11 +3634,11 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
 #if DEBUG
             DebugLog.EnableDebug = true;
-            DebugLog.Logar("DoCrossOver => Inicio de adicao de Genes por processGene (pSon: " + pSon.GetUniqueId() + ", pDaughter: " + pDaughter.GetUniqueId() + ") ...", pIndet: TrainIndividual.IDLog);
-            DebugLog.Logar("pFather = " + pFather + "\n", pIndet: TrainIndividual.IDLog);
-            DebugLog.Logar("pMother = " + pMother + "\n", pIndet: TrainIndividual.IDLog);
-            DebugLog.Logar("pSon = " + pSon + "\n", pIndet: TrainIndividual.IDLog);
-            DebugLog.Logar("pDaughter = " + pDaughter + "\n", pIndet: TrainIndividual.IDLog);
+            DebugLog.Logar("DoCrossOver => Inicio de adicao de Genes por MoveTrain (pSon: " + pSon.GetUniqueId() + ", pDaughter: " + pDaughter.GetUniqueId() + ") ...", pIndet: TrainIndividual.IDLog);
+            DebugLog.Logar("(pFather: " + pFather.GetUniqueId() + ") = " + pFather + "\n", pIndet: TrainIndividual.IDLog);
+            DebugLog.Logar("(pMother: " + pMother.GetUniqueId() + ") = " + pMother + "\n", pIndet: TrainIndividual.IDLog);
+            DebugLog.Logar("(pSon: " + pSon.GetUniqueId() + ") = " + pSon + "\n", pIndet: TrainIndividual.IDLog);
+            DebugLog.Logar("(pDaughter: " + pDaughter.GetUniqueId() + ") = " + pDaughter + "\n", pIndet: TrainIndividual.IDLog);
             ((TrainIndividual)pSon).DumpStopArrivalLocation(null, 0, "pSon");
             ((TrainIndividual)pDaughter).DumpStopArrivalLocation(null, 0, "pDaughter");
             DebugLog.EnableDebug = lvIsLogEnables;
@@ -3625,21 +3654,34 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     /* Son */
                     if ((pSon != null) && (lvMovMother != null) && !pSon.hasArrived(lvMovMother[0].TrainId) && ((ind % 2) != 0) && (((ind < lvCrossOverPos.Count) && (pSon.Count < lvCrossOverPos[ind])) || (ind >= lvCrossOverPos.Count)))
                     {
-                        if (!lvHashSetSon.Contains(pMother[i].GetID()))
+                        if (!lvHashSetSon.Contains(lvMovMother.GetID()))
                         {
-                            if (lvQueueSon.Count > 0)
-                            {
-                                AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
-                            }
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            DebugLog.Logar("Tentando pSon.MoveTrain(" + lvMovMother + ")\n", pIndet: TrainIndividual.IDLog);
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                            lvTrainMovRes = pSon.ProcessGene(lvMovFather, lvTimeLine);
+                            lvTrainMovRes = pSon.MoveTrain(lvMovMother, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
                                 lvHashSetSon.Add(lvMovMother.GetID());
+
+                                if (lvQueueSon.Count > 0)
+                                {
+                                    AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
+                                }
                                 //DumpStopLocation(lvGenes[lvGenes.Count - 1]);
                             }
                             else
                             {
+#if DEBUG
+                                DebugLog.EnableDebug = true;
+                                DebugLog.Logar("lvQueueSon.Enqueue(lvMovMother)", pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueueSon.Count = " + lvQueueSon.Count, pIndet: TrainIndividual.IDLog);
+                                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                                 lvQueueSon.Enqueue(lvMovMother);
 #if DEBUG
                                 if (DebugLog.EnableDebug)
@@ -3680,19 +3722,32 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     {
                         if (!lvHashSetSon.Contains(lvMovFather.GetID()))
                         {
-                            if (lvQueueSon.Count > 0)
-                            {
-                                AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
-                            }
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            DebugLog.Logar("Tentando pSon.MoveTrain(" + lvMovFather + ")\n", pIndet: TrainIndividual.IDLog);
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                            lvTrainMovRes = pSon.ProcessGene(lvMovFather, lvTimeLine);
+                            lvTrainMovRes = pSon.MoveTrain(lvMovFather, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
                                 lvHashSetSon.Add(lvMovFather.GetID());
+
+                                if (lvQueueSon.Count > 0)
+                                {
+                                    AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
+                                }
                                 //DumpStopLocation(lvGenes[lvGenes.Count - 1]);
                             }
                             else
                             {
+#if DEBUG
+                                DebugLog.EnableDebug = true;
+                                DebugLog.Logar("lvQueueSon.Enqueue(lvMovFather)", pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueueSon.Count = " + lvQueueSon.Count, pIndet: TrainIndividual.IDLog);
+                                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                                 lvQueueSon.Enqueue(lvMovFather);
 
 #if DEBUG
@@ -3736,19 +3791,32 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     {
                         if (!lvHashSetDaughter.Contains(lvMovFather.GetID()))
                         {
-                            if (lvQueueDaughter.Count > 0)
-                            {
-                                AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
-                            }
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            DebugLog.Logar("Tentando pDaughter.MoveTrain(" + lvMovFather + ")\n", pIndet: TrainIndividual.IDLog);
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                            lvTrainMovRes = pDaughter.ProcessGene(lvMovFather, lvTimeLine);
+                            lvTrainMovRes = pDaughter.MoveTrain(lvMovFather, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
                                 lvHashSetDaughter.Add(lvMovFather.GetID());
-                                    //DumpStopLocation(lvGenes[lvGenes.Count - 1]);
+
+                                if (lvQueueDaughter.Count > 0)
+                                {
+                                    AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
+                                }
+                                //DumpStopLocation(lvGenes[lvGenes.Count - 1]);
                             }
                             else
                             {
+#if DEBUG
+                                DebugLog.EnableDebug = true;
+                                DebugLog.Logar("lvQueueDaughter.Enqueue(lvMovFather)", pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueueDaughter.Count = " + lvQueueDaughter.Count, pIndet: TrainIndividual.IDLog);
+                                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                                 lvQueueDaughter.Enqueue(lvMovFather);
 
 #if DEBUG
@@ -3790,19 +3858,32 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     {
                         if (!lvHashSetDaughter.Contains(lvMovMother.GetID()))
                         {
-                            if (lvQueueDaughter.Count > 0)
-                            {
-                                AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
-                            }
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            DebugLog.Logar("Tentando pDaughter.MoveTrain(" + lvMovMother + ")\n", pIndet: TrainIndividual.IDLog);
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                            lvTrainMovRes = pDaughter.ProcessGene(lvMovMother, lvTimeLine);
+                            lvTrainMovRes = pDaughter.MoveTrain(lvMovMother, lvTimeLine);
                             if (lvTrainMovRes != null)
                             {
                                 lvHashSetDaughter.Add(lvMovMother.GetID());
+
+                                if (lvQueueDaughter.Count > 0)
+                                {
+                                    AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
+                                }
                                 //DumpStopLocation(lvGenes[lvGenes.Count - 1]);
                             }
                             else
                             {
+#if DEBUG
+                                DebugLog.EnableDebug = true;
+                                DebugLog.Logar("lvQueueDaughter.Enqueue(lvMovMother)", pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueueDaughter.Count = " + lvQueueDaughter.Count, pIndet: TrainIndividual.IDLog);
+                                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                                 lvQueueDaughter.Enqueue(lvMovMother);
 
 #if DEBUG
@@ -3860,28 +3941,14 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     AddFromQueue(pSon, lvQueueSon, lvHashSetSon);
                 }
 
-                if (lvQueueSon.Count > 0)
+                if (pSon.Count != lvCount)
                 {
                     DebugLog.Logar("DoCrossOver DeadLock Found (pSon) => ", false, pIndet: TrainIndividual.IDLog);
 #if DEBUG
                     DebugLog.EnableDebug = true;
                     ((TrainIndividual)pSon).DumpCurrentState("pSon");
                     ((TrainIndividual)pSon).DumpStopLocation(null);
-                    DebugLog.Logar("pSon = " + pSon, pIndet: TrainIndividual.IDLog);
-                    ((TrainIndividual)pFather).DumpDifference(pSon);
-                    DebugLog.EnableDebug = lvIsLogEnables;
-#endif
-                    pSon.Clear();
-                    pSon = null;
-                }
-                else if (pSon.Count != lvCount)
-                {
-                    DebugLog.Logar("DoCrossOver DeadLock Found (pSon) => ", false, pIndet: TrainIndividual.IDLog);
-#if DEBUG
-                    DebugLog.EnableDebug = true;
-                    ((TrainIndividual)pSon).DumpCurrentState("pSon");
-                    ((TrainIndividual)pSon).DumpStopLocation(null);
-                    DebugLog.Logar("pSon = " + pSon, pIndet: TrainIndividual.IDLog);
+                    DebugLog.Logar("(pSon: " + pSon.GetUniqueId() + ") = " + pSon, pIndet: TrainIndividual.IDLog);
                     ((TrainIndividual)pFather).DumpDifference(pSon);
                     DebugLog.EnableDebug = lvIsLogEnables;
 #endif
@@ -3899,28 +3966,14 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     AddFromQueue(pDaughter, lvQueueDaughter, lvHashSetDaughter);
                 }
 
-                if (lvQueueDaughter.Count > 0)
+                if (pDaughter.Count != lvCount)
                 {
                     DebugLog.Logar("DoCrossOver DeadLock Found (pDaughter) => ", false, pIndet: TrainIndividual.IDLog);
 #if DEBUG
                     DebugLog.EnableDebug = true;
                     ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter");
                     ((TrainIndividual)pDaughter).DumpStopLocation(null);
-                    DebugLog.Logar("pDaughter = " + pDaughter, pIndet: TrainIndividual.IDLog);
-                    ((TrainIndividual)pFather).DumpDifference(pDaughter);
-                    DebugLog.EnableDebug = lvIsLogEnables;
-#endif
-                    pDaughter.Clear();
-                    pDaughter = null;
-                }
-                else if (pDaughter.Count != lvCount)
-                {
-                    DebugLog.Logar("DoCrossOver DeadLock Found (pDaughter) => ", false, pIndet: TrainIndividual.IDLog);
-#if DEBUG
-                    DebugLog.EnableDebug = true;
-                    ((TrainIndividual)pDaughter).DumpCurrentState("pDaughter");
-                    ((TrainIndividual)pDaughter).DumpStopLocation(null);
-                    DebugLog.Logar("pDaughter = " + pDaughter, pIndet: TrainIndividual.IDLog);
+                    DebugLog.Logar("(pDaughter: " + pDaughter.GetUniqueId() + ") = pDaughter", pIndet: TrainIndividual.IDLog);
                     ((TrainIndividual)pFather).DumpDifference(pDaughter);
                     DebugLog.EnableDebug = lvIsLogEnables;
 #endif
@@ -3943,7 +3996,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             DebugLog.Logar(ex, false, pIndet: TrainIndividual.IDLog);
         }
 
-        DebugLog.EnableDebug = lvIsLogEnables;
+        DebugLog.EnableDebug = false;
     }
 
     /*
@@ -3990,19 +4043,15 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
         IEnumerable<Gene> lvTrainMovRes = null;
         List<int> lvRefPos = new List<int>();
         Queue<TrainMovement> lvQueue = new Queue<TrainMovement>();
-        Gene lvRefGene = null;
-        Gene lvGene = null;
-        HashSet<double> lvHashSetNotAllowed = new HashSet<double>();
-        HashSet<Gene> lvHashRefGene = new HashSet<Gene>();
+        TrainMovement lvRefTrainMovement = null;
         DateTime lvTimeLine = DateTime.MaxValue;
-        int lvRefIndex = -1;
-        int lvPrevGene = -1;
+        int lvPrevTrainMovementIndex = -1;
         int lvEndIndex = -1;
 
         bool lvIsLogEnables = DebugLog.EnableDebug;
 
 #if DEBUG
-        DebugLog.EnableDebug = lvIsLogEnables;
+        DebugLog.EnableDebug = true;
         if (DebugLog.EnableDebug)
         {
             DebugLog.Logar(" ------------------------ Mutate(" + pIndividual.GetUniqueId() + ", " + pSteps + ", " + pUpdate + ") -------------------------- ");
@@ -4018,11 +4067,21 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                 lvTrainMovement = pIndividual[lvInitialPos];
 
+#if DEBUG
+                DebugLog.EnableDebug = true;
+                if (DebugLog.EnableDebug)
+                {
+                    DebugLog.Logar("lvInitialPos = " + lvInitialPos, pIndet: TrainIndividual.IDLog);
+                    DebugLog.Logar("lvTrainMovement = " + lvTrainMovement, pIndet: TrainIndividual.IDLog);
+                }
+                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                 //DebugLog.Logar("lvInitialPos = " + lvInitialPos);
 
-                lvRefGene = lvTrainMovement[0];
+                lvRefTrainMovement = lvTrainMovement;
 
-                if((lvRefGene != null) && (lvRefGene.StopLocation == null) || (lvRefGene.StopLocation.Location == lvRefGene.StartStopLocation.Location))
+                if ((lvTrainMovement != null) && (lvTrainMovement[0].StopLocation == null) || (lvTrainMovement[0].StopLocation.Location == lvTrainMovement[0].StartStopLocation.Location))
                 {
                     return lvMutatedIndividual;
                 }
@@ -4031,9 +4090,17 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                 {
                     for (int i = lvInitialPos+1; i < pIndividual.Count; i++)
                     {
-                        lvGene = pIndividual[i][0];
-                        if (lvGene.TrainId == lvRefGene.TrainId)
+                        if (pIndividual[i].Last.TrainId == lvTrainMovement.Last.TrainId)
                         {
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            if (DebugLog.EnableDebug)
+                            {
+                                DebugLog.Logar("lvRefPos.Add(" + i + ")", pIndet: TrainIndividual.IDLog);
+                            }
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
                             lvRefPos.Add(i);
 
                             if(lvRefPos.Count >= pSteps)
@@ -4044,44 +4111,69 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     }
                 }
 
-                lvPrevGene = -1;
+                lvPrevTrainMovementIndex = -1;
                 for (int i = lvInitialPos - 2; i >= 0; i--)
                 {
-                    lvGene = pIndividual[i][0];
-
-                    if (lvGene.TrainId == lvRefGene.TrainId)
+                    if (pIndividual[i].Last.TrainId == lvTrainMovement.Last.TrainId)
                     {
-                        lvPrevGene = i + 1;
+                        lvPrevTrainMovementIndex = i;
                         break;
                     }
                 }
+#if DEBUG
+                DebugLog.EnableDebug = true;
+                if (DebugLog.EnableDebug)
+                {
+                    DebugLog.Logar("lvPrevTrainMovementIndex = " + lvPrevTrainMovementIndex, pIndet: TrainIndividual.IDLog);
+                }
+                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                if (lvPrevGene < 0)
+                if (lvPrevTrainMovementIndex < 0)
                 {
                     return lvMutatedIndividual;
                 }
 
-                if ((lvPrevGene + 1) < lvInitialPos)
+                if ((lvPrevTrainMovementIndex + 1) < lvInitialPos)
                 {
-                    if (lvPrevGene + 1 > mTrainList.Count)
+                    if (lvPrevTrainMovementIndex + 1 > mTrainList.Count)
                     {
-                        lvNewPosition = mRandom.Next(lvPrevGene + 1, lvInitialPos);
+                        lvNewPosition = mRandom.Next(lvPrevTrainMovementIndex + 1, lvInitialPos);
                     }
                     else
                     {
                         lvNewPosition = mRandom.Next(mTrainList.Count + 1, lvInitialPos);
                     }
                     lvTrainMovement = pIndividual[lvNewPosition];
-                    lvGene = lvTrainMovement[0];
                 }
                 else
                 {
                     return null;
                 }
 
-                if ((lvRefGene.TrainId != lvGene.TrainId) && ((mTrainList.Count + 1) < lvInitialPos))
+#if DEBUG
+                DebugLog.EnableDebug = true;
+                if (DebugLog.EnableDebug)
+                {
+                    DebugLog.Logar("lvNewPosition = " + lvNewPosition, pIndet: TrainIndividual.IDLog);
+                    DebugLog.Logar("lvTrainMovement = " + lvTrainMovement, pIndet: TrainIndividual.IDLog);
+                }
+                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                if ((lvRefTrainMovement.Last.TrainId != lvTrainMovement.Last.TrainId) && ((mTrainList.Count + 1) < lvInitialPos))
                 {
                     lvMutatedIndividual = new TrainIndividual(mFitness, mDateRef, mTrainList, mPATs, mRandom);
+#if DEBUG
+                    DebugLog.EnableDebug = true;
+                    if (DebugLog.EnableDebug)
+                    {
+                        DebugLog.Logar("\n" + lvTrainMovement, pIndet: TrainIndividual.IDLog);
+                        DebugLog.Logar("lvMutatedIndividual criado = " + lvMutatedIndividual, pIndet: TrainIndividual.IDLog);
+                        DebugLog.Logar("lvMutatedIndividual.Count = " + lvMutatedIndividual.Count, pIndet: TrainIndividual.IDLog);
+                    }
+                    DebugLog.EnableDebug = lvIsLogEnables;
+#endif
                     //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
                     lvEndIndex = lvNewPosition - 1;
 
@@ -4094,110 +4186,147 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
 
                     lvMutatedIndividual.AddElements(pIndividual.GetElements(mTrainList.Count, lvEndIndex));
 
-                    //DebugLog.Logar("lvMutatedIndividual.Count = " + lvMutatedIndividual.Count);
-
-                    /* Insere o Gene na nova posição */
-                    if (lvQueue.Count > 0)
+#if DEBUG
+                    DebugLog.EnableDebug = true;
+                    if (DebugLog.EnableDebug)
                     {
-                        AddFromQueue(lvMutatedIndividual, lvQueue);
+                        DebugLog.Logar("\n lvTrainMovement = " + lvTrainMovement, pIndet: TrainIndividual.IDLog);
+                        DebugLog.Logar("lvMutatedIndividual apos adicionar elementos ate lvEndIndex(" + lvEndIndex + ") = " + lvMutatedIndividual, pIndet: TrainIndividual.IDLog);
                     }
 
-                    //DebugLog.Logar("lvRefGene = " + lvRefGene);
-
-                    /*
-                    if ((lvRefGene.StopLocation != null) && !lvHashSetNotAllowed.Contains(lvRefGene.TrainId) && (lvRefGene.StopLocation.Location != lvRefGene.StartStopLocation.Location))
+                    if (DebugLog.EnableDebug)
                     {
-                        lvMutatedIndividual.AddElementRef(lvRefGene);
+                        DebugLog.Logar("\n" + lvTrainMovement, pIndet: TrainIndividual.IDLog);
+                        DebugLog.Logar("inserindo Movimento da mutacao obtido de pIndividual[" + lvInitialPos + "](lvInitialPos) = " + pIndividual[lvInitialPos], pIndet: TrainIndividual.IDLog);
                     }
-                    */
-                    //DebugLog.Logar("lvMutatedIndividual.Count = " + lvMutatedIndividual.Count);
+                    DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
                     /* insere o RefGene correspondente */
-                    lvTrainMovRes = lvMutatedIndividual.ProcessGene(pIndividual[lvInitialPos], lvTimeLine, pUpdate);
+                    lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvInitialPos], lvTimeLine, pUpdate);
                     //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
 
                     if (lvTrainMovRes == null)
                     {
-                        lvQueue.Enqueue(pIndividual[lvInitialPos]);
-                        if (!lvHashSetNotAllowed.Contains(lvRefGene.TrainId))
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        if (DebugLog.EnableDebug)
                         {
-                            lvHashSetNotAllowed.Add(lvRefGene.TrainId);
+                            DebugLog.Logar("lvQueue.Enqueue(pIndividual[lvInitialPos])", pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvQueue.Count = " + lvQueue.Count, pIndet: TrainIndividual.IDLog);
+                        }
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                        lvQueue.Enqueue(pIndividual[lvInitialPos]);
+                    }
+                    else
+                    {
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        if (DebugLog.EnableDebug)
+                        {
+                            DebugLog.Logar("Movimento inserido !", pIndet: TrainIndividual.IDLog);
+                        }
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+                        if (lvQueue.Count > 0)
+                        {
+                            AddFromQueue(lvMutatedIndividual, lvQueue);
                         }
                     }
-                    lvHashRefGene.Add(lvGene);
 
-                    if (lvRefPos.Count > 0)
+                    /* Insere os genes restantes */
+                    for (int i = 0; i < lvRefPos.Count; i++)
                     {
-                        /* Insere os genes restantes */
-                        for (int i = 0; i < pSteps; i++)
+                        lvInitialPos = lvNewPosition;
+                        lvEndIndex = lvRefPos[i];
+                        /* Procurar novo Gene com mesmo trainId de RefGene para estabelecer os limites */
+                        lvNewPosition = mRandom.Next(lvInitialPos + 1, lvEndIndex);
+
+                        /* Insere o Gene igual a RefGene no intervalo aleatório */
+                        for (int ind = lvInitialPos; ind < lvNewPosition; ind++)
                         {
-                            lvInitialPos = lvNewPosition;
-                            lvEndIndex = lvRefPos[++lvRefIndex];
-                            /* Procurar novo Gene com mesmo trainId de RefGene para estabelecer os limites */
-                            lvNewPosition = mRandom.Next(lvInitialPos+1, lvEndIndex);
-
-                            /* Insere o Gene igual a RefGene no intervalo aleatório */
-                            for (int ind = lvInitialPos+1; ind < lvNewPosition; ind++)
+                            if (pIndividual[ind].Last.TrainId != lvRefTrainMovement.Last.TrainId)
                             {
-                                lvGene = pIndividual[ind][0];
+#if DEBUG
+                                DebugLog.EnableDebug = true;
+                                if (DebugLog.EnableDebug)
+                                {
+                                    DebugLog.Logar("Tentando lvMutatedIndividual.MoveTrain(" + pIndividual[ind] + ")", pIndet: TrainIndividual.IDLog);
+                                }
+                                DebugLog.EnableDebug = lvIsLogEnables;
+#endif
 
-                                if (lvGene.TrainId != lvRefGene.TrainId)
+                                lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], lvTimeLine, pUpdate);
+                                //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
+
+                                if (lvTrainMovRes == null)
+                                {
+#if DEBUG
+                                    DebugLog.EnableDebug = true;
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        DebugLog.Logar("lvQueue.Enqueue(pIndividual[ind])", pIndet: TrainIndividual.IDLog);
+                                        DebugLog.Logar("lvQueue.Count = " + lvQueue.Count, pIndet: TrainIndividual.IDLog);
+                                    }
+                                    DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                                    lvQueue.Enqueue(pIndividual[ind]);
+                                }
+                                else
                                 {
                                     if (lvQueue.Count > 0)
                                     {
                                         AddFromQueue(lvMutatedIndividual, lvQueue);
                                     }
-
-                                    /*
-                                    if ((lvGene.StopLocation != null) && !lvHashSetNotAllowed.Contains(lvGene.TrainId) && (lvGene.StopLocation.Location != lvGene.StartStopLocation.Location))
-                                    {
-                                        lvMutatedIndividual.AddElementRef(lvGene);
-                                    }
-                                    */
-
-                                    lvTrainMovRes = lvMutatedIndividual.ProcessGene(pIndividual[ind], lvTimeLine, pUpdate);
-                                    //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
-
-                                    if (lvTrainMovRes == null)
-                                    {
-                                        lvQueue.Enqueue(pIndividual[ind]);
-                                        if (!lvHashSetNotAllowed.Contains(lvGene.TrainId))
-                                        {
-                                            lvHashSetNotAllowed.Add(lvGene.TrainId);
-                                        }
-                                    }
                                 }
                             }
+                        }
 
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        if (DebugLog.EnableDebug)
+                        {
+                            DebugLog.Logar("lvMutatedIndividual apos inserir os movimentos restantes = " + lvMutatedIndividual, pIndet: TrainIndividual.IDLog);
+                            DebugLog.Logar("lvMutatedIndividual.Count = " + lvMutatedIndividual.Count, pIndet: TrainIndividual.IDLog);
+                        }
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        if (DebugLog.EnableDebug)
+                        {
+                            DebugLog.Logar("Tentando lvMutatedIndividual.MoveTrain(" + pIndividual[lvEndIndex] + ")", pIndet: TrainIndividual.IDLog);
+                        }
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                        /* insere o RefGene correspondente */
+                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[lvEndIndex], lvTimeLine, pUpdate);
+                        //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
+
+                        if (lvTrainMovRes == null)
+                        {
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            if (DebugLog.EnableDebug)
+                            {
+                                DebugLog.Logar("lvQueue.Enqueue(pIndividual[lvEndIndex])" + pIndividual[lvEndIndex], pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueue.Count = " + lvQueue.Count, pIndet: TrainIndividual.IDLog);
+                            }
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                            lvQueue.Enqueue(pIndividual[lvEndIndex]);
+                        }
+                        else
+                        {
                             if (lvQueue.Count > 0)
                             {
                                 AddFromQueue(lvMutatedIndividual, lvQueue);
-                            }
-
-                            /* insere o RefGene correspondente */
-                            lvGene = pIndividual[lvEndIndex][0];
-
-                            lvTrainMovRes = lvMutatedIndividual.ProcessGene(pIndividual[lvEndIndex], lvTimeLine, pUpdate);
-                            //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
-
-                            if (lvTrainMovRes == null)
-                            {
-                                lvQueue.Enqueue(pIndividual[lvEndIndex]);
-                                if (!lvHashSetNotAllowed.Contains(lvRefGene.TrainId))
-                                {
-                                    lvHashSetNotAllowed.Add(lvRefGene.TrainId);
-                                }
-                            }
-                            lvHashRefGene.Add(lvGene);
-
-                            if (lvQueue.Count > 0)
-                            {
-                                AddFromQueue(lvMutatedIndividual, lvQueue);
-                            }
-
-                            if (lvRefIndex >= (lvRefPos.Count - 1))
-                            {
-                                break;
                             }
                         }
                     }
@@ -4205,31 +4334,37 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                     /* preenche com o restante do indivíduo */
                     for (int ind = lvNewPosition; ind < pIndividual.Count; ind++)
                     {
-                        lvGene = pIndividual[ind][0];
-                        if (!lvHashRefGene.Contains(lvGene))
+#if DEBUG
+                        DebugLog.EnableDebug = true;
+                        if (DebugLog.EnableDebug)
+                        {
+                            DebugLog.Logar("Tentando lvMutatedIndividual.MoveTrain(" + pIndividual[ind] + ")", pIndet: TrainIndividual.IDLog);
+                        }
+                        DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                        lvTrainMovRes = lvMutatedIndividual.MoveTrain(pIndividual[ind], lvTimeLine, pUpdate);
+                        //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
+
+                        if (lvTrainMovRes == null)
+                        {
+#if DEBUG
+                            DebugLog.EnableDebug = true;
+                            if (DebugLog.EnableDebug)
+                            {
+                                DebugLog.Logar("lvQueue.Enqueue(pIndividual[ind])", pIndet: TrainIndividual.IDLog);
+                                DebugLog.Logar("lvQueue.Count = " + lvQueue.Count, pIndet: TrainIndividual.IDLog);
+                            }
+                            DebugLog.EnableDebug = lvIsLogEnables;
+#endif
+
+                            lvQueue.Enqueue(pIndividual[ind]);
+                        }
+                        else
                         {
                             if (lvQueue.Count > 0)
                             {
                                 AddFromQueue(lvMutatedIndividual, lvQueue);
-                            }
-
-                            /*
-                            if ((lvGene.StopLocation != null) && !lvHashSetNotAllowed.Contains(lvGene.TrainId) && (lvGene.StopLocation.Location != lvGene.StartStopLocation.Location))
-                            {
-                                lvMutatedIndividual.AddElementRef(lvGene);
-                            }
-                            */
-
-                            lvTrainMovRes = lvMutatedIndividual.ProcessGene(pIndividual[ind], lvTimeLine, pUpdate);
-                            //DebugLog.Logar("Mutate.lvMutatedIndividual.VerifyConflict() = " + ((TrainIndividual)lvMutatedIndividual).VerifyConflict(), pIndet: TrainIndividual.IDLog);
-
-                            if (lvTrainMovRes != null)
-                            {
-                                lvQueue.Enqueue(pIndividual[ind]);
-                                if (!lvHashSetNotAllowed.Contains(lvGene.TrainId))
-                                {
-                                    lvHashSetNotAllowed.Add(lvGene.TrainId);
-                                }
                             }
                         }
                     }
@@ -4244,22 +4379,8 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         DebugLog.Logar("Mutate DeadLock Found !!! => ", false, pIndet: TrainIndividual.IDLog);
 #if DEBUG
                         DebugLog.EnableDebug = true;
-                        ((TrainIndividual)pIndividual).Dump(0, null);
-                        ((TrainIndividual)lvMutatedIndividual).Dump(0, null);
-                        ((TrainIndividual)pIndividual).DumpDifference(lvMutatedIndividual);
-                        DebugLog.EnableDebug = lvIsLogEnables;
-#endif
-                        lvMutatedIndividual.Clear();
-                        lvMutatedIndividual = null;
-                    }
-
-                    if ((lvQueue.Count > 0) && (lvMutatedIndividual != null))
-                    {
-                        DebugLog.Logar("Mutate DeadLock Found !!! => ", false, pIndet: TrainIndividual.IDLog);
-#if DEBUG
-                        DebugLog.EnableDebug = true;
-                        ((TrainIndividual)pIndividual).Dump(0, null);
-                        ((TrainIndividual)lvMutatedIndividual).Dump(0, null);
+                        DebugLog.Logar("(pIndividual: " + pIndividual.GetUniqueId() + ") = " + pIndividual + "\n", pIndet: TrainIndividual.IDLog);
+                        DebugLog.Logar("(lvMutatedIndividual: " + lvMutatedIndividual.GetUniqueId() + ") = " + lvMutatedIndividual + "\n", pIndet: TrainIndividual.IDLog);
                         ((TrainIndividual)pIndividual).DumpDifference(lvMutatedIndividual);
                         DebugLog.EnableDebug = lvIsLogEnables;
 #endif
@@ -4272,7 +4393,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
             }
 
 #if DEBUG
-            DebugLog.EnableDebug = lvIsLogEnables;
+            DebugLog.EnableDebug = true;
             if (DebugLog.EnableDebug)
             {
                 DebugLog.Logar(" --------------------------------------------------------------------------------------------------------------- ");
@@ -4424,7 +4545,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                 lvMutatedIndividual.AddGeneRef(lvGene);
                             }
 
-                            lvRes = lvMutatedIndividual.ProcessGene(lvGene, lvTimeLine);
+                            lvRes = lvMutatedIndividual.MoveTrain(lvGene, lvTimeLine);
                             if (!lvRes)
                             {
                                 lvQueue.Enqueue(lvGene);
@@ -4446,7 +4567,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                         lvMutatedIndividual.AddGeneRef(lvRefGene);
                     }
 
-                    lvRes = lvMutatedIndividual.ProcessGene(lvRefGene, lvTimeLine);
+                    lvRes = lvMutatedIndividual.MoveTrain(lvRefGene, lvTimeLine);
                     if (!lvRes)
                     {
                         lvQueue.Enqueue(lvRefGene);
@@ -4476,7 +4597,7 @@ public class Population : IEnumerable<IIndividual<TrainMovement>>
                                 lvMutatedIndividual.AddGeneRef(lvGene);
                             }
 
-                            lvRes = lvMutatedIndividual.ProcessGene(lvGene, lvTimeLine);
+                            lvRes = lvMutatedIndividual.MoveTrain(lvGene, lvTimeLine);
                             if (!lvRes)
                             {
                                 lvQueue.Enqueue(lvGene);
