@@ -29,6 +29,7 @@ public class Gene : IEquatable<Gene>
     private DateTime mOptimumTime = DateTime.MinValue;
     private double mSpeed = 0.0;
     private double mValueWeight = 1.0;
+    private bool mVisible = true;
     private STATE mState = STATE.UNDEF;
 
     public enum STATE
@@ -294,6 +295,19 @@ public class Gene : IEquatable<Gene>
         set
         {
             mSequence = value;
+        }
+    }
+
+    public bool Visible
+    {
+        get
+        {
+            return mVisible;
+        }
+
+        set
+        {
+            mVisible = value;
         }
     }
 

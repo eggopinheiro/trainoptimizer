@@ -638,6 +638,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         string lvStrTrainLabel = "";
         string lvXValues = "";
         string lvYValues = "";
+        string lvTrackValues = "";
         string lvStrColor = "";
         string lvStrReason = "";
 
@@ -672,6 +673,9 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     {
                         lvYValues = ((double)lvGene.Coordinate / 100000.0).ToString();
                     }
+
+                    lvTrackValues = lvGene.Track.ToString();
+
                     lvXValues = lvXValues.Replace(",", ".");
                     lvYValues = lvYValues.Replace(",", ".");
 
@@ -679,6 +683,8 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     lvStrSerie.Append(lvXValues);
                     lvStrSerie.Append(", ");
                     lvStrSerie.Append(lvYValues);
+                    lvStrSerie.Append(", ");
+                    lvStrSerie.Append(lvTrackValues);
                     lvStrSerie.Append("]");
                     lvStrSerie = null;
                 }
@@ -686,7 +692,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 {
                     lvStrSerie = new StringBuilder();
                     lvStrColor = Train.GetColorByTrainType(lvGene.TrainName.Substring(0, 1).ToUpper());
-                    lvStrTrainLabel = string.Format("({0} - Linha {1}): {2}", lvGene.TrainName, lvGene.Track, lvGene.TrainId);
+                    lvStrTrainLabel = string.Format("{0} - {1}", lvGene.TrainName, lvGene.TrainId);
                     lvStrSerie.Append("{\"color\": \"");
                     lvStrSerie.Append(lvStrColor);
                     lvStrSerie.Append("\", \"label\": \"");
@@ -704,6 +710,9 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     {
                         lvYValues = ((double)lvGene.Coordinate / 100000.0).ToString();
                     }
+
+                    lvTrackValues = lvGene.Track.ToString();
+
                     lvXValues = lvXValues.Replace(",", ".");
                     lvYValues = lvYValues.Replace(",", ".");
 
@@ -711,12 +720,14 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     lvStrSerie.Append(ConnectionManager.GetUTCDateTime(lvCurrentDate));
                     lvStrSerie.Append(", ");
                     lvStrSerie.Append(lvYValues);
-                    lvStrSerie.Append("]");
+                    lvStrSerie.Append(", 0]");
 
                     lvStrSerie.Append(", [");
                     lvStrSerie.Append(lvXValues);
                     lvStrSerie.Append(", ");
                     lvStrSerie.Append(lvYValues);
+                    lvStrSerie.Append(", ");
+                    lvStrSerie.Append(lvTrackValues);
                     lvStrSerie.Append("]");
 
                     lvDicSeries.Add(lvGene.TrainId, lvStrSerie);
@@ -2573,6 +2584,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         return lvRes;
     }
 
+    /*
     private DateTime[] GetCurrentFirstOutputTime(Gene pGene, StopLocation pStopLocation, DateTime pLimitTime, out DateTime[] pArrivals)
     {
         DateTime[] lvRes = new DateTime[pStopLocation.Capacity];
@@ -2664,8 +2676,9 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
         return lvRes;
     }
+    */
 
-    private void GetHeadWays(Gene pGene, StopLocation pStopLocation, int pDirection, ref List<Gene[]> pGeneHeadwaysTime, out int pInterdCount, bool pInStopLocation = false)
+    private void GetHeadWays(Gene pGene, StopLocation pStopLocation, int pDirection, ref List<Gene[]> pGeneHeadwaysTime, out int pInterdCount, bool pInStopLocation = false, DateTime pLastPlannedArrival = default(DateTime))
     {
         Gene[] lvValues = null;
         ISet<Gene> lvGenes = null;
@@ -2684,8 +2697,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
         if (pStopLocation != null)
         {
-            lvStopLocationValue = pStopLocation.Location;
-
 #if DEBUG
             if (DebugLog.EnableDebug)
             {
@@ -2695,11 +2706,23 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
             try
             {
-                if (mStopLocationArrival.ContainsKey(lvStopLocationValue))
+                if (pInStopLocation)
                 {
+                    lvStopLocations = StopLocation.GetStopLocationsUpToSwitch(pStopLocation, pStopLocation.GetNextSwitchSegment(pGene.Direction), pGene.Direction);
+                }
+                else
+                {
+                    lvStopLocations = new List<StopLocation>();
+                    lvStopLocations.Add(pStopLocation);
+                }
+
+                foreach (StopLocation lvStopLoc in lvStopLocations)
+                {
+                    lvStopLocationValue = lvStopLoc.Location;
+
                     lvGenes = mStopLocationArrival[lvStopLocationValue];
 
-                    foreach(Gene lvGene in lvGenes)
+                    foreach (Gene lvGene in lvGenes)
                     {
                         if (lvGene != null)
                         {
@@ -2708,17 +2731,24 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                 if (pInStopLocation)
                                 {
                                     lvCondiction = (pGene.Time > lvGene.Time);
-                                    if(lvValues == null)
+                                    if (lvValues == null)
                                     {
                                         lvBreakcondiction = false;
                                     }
-                                    else if((lvValues[1] != null) && (lvValues[1].Time > pGene.Time))
+                                    else if (lvValues[1] != null)
                                     {
-                                        lvBreakcondiction = false;
+                                        if (lvValues[1].Time > pGene.Time)
+                                        {
+                                            lvBreakcondiction = false;
+                                        }
+                                        else
+                                        {
+                                            lvBreakcondiction = true;
+                                        }
                                     }
                                     else
                                     {
-                                        lvBreakcondiction = true;
+                                        lvBreakcondiction = false;
                                     }
                                 }
                                 else
@@ -2734,11 +2764,16 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                     if (pInStopLocation)
                                     {
                                         lvValues[0] = lvGene;
-                                        lvValues[1] = GetLastStep(lvGene.TrainId, out lvOutIndex, Gene.STATE.OUT, pStopLocation);
+                                        lvValues[1] = GetLastStep(lvGene.TrainId, out lvOutIndex, Gene.STATE.OUT, lvStopLoc);
 
                                         if (lvValues[1] != null)
                                         {
                                             lvSaveCondiction = ((pGene.Time >= lvValues[0].Time) && (pGene.Time <= lvValues[1].Time));
+
+                                            if (!lvSaveCondiction && (pLastPlannedArrival > DateTime.MinValue))
+                                            {
+                                                lvSaveCondiction = ((pLastPlannedArrival <= lvValues[0].Time) && (pGene.Time >= lvValues[1].Time));
+                                            }
                                         }
                                         else
                                         {
@@ -2805,13 +2840,45 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                             lvStrInfo.Append(", considerando Direction: ");
                                             lvStrInfo.Append(pDirection);
                                             lvStrInfo.Append(", Stop Location: ");
-                                            lvStrInfo.Append(pStopLocation.Location);
+                                            lvStrInfo.Append(lvStopLoc.Location);
 
                                             DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
 
                                             //DumpStopLocation(pStopLocation);
                                         }
 #endif
+                                    }
+                                    else if (lvBreakcondiction)
+                                    {
+#if DEBUG
+                                        if (DebugLog.EnableDebug)
+                                        {
+                                            StringBuilder lvStrInfo = new StringBuilder();
+
+                                            if (pInStopLocation)
+                                            {
+                                                lvStrInfo.Append("GetHeadWays in Stop Location => Breaking devido a Breaking Condition (lvGene.Time: ");
+                                            }
+                                            else
+                                            {
+                                                lvStrInfo.Append("GetHeadWays between Stop Location => Breaking devido a lvGene.Time < pGene.Time (lvGene.Time: ");
+                                            }
+
+                                            lvStrInfo.Append(lvGene.Time);
+                                            lvStrInfo.Append("; lvGene.HeadWayTime: ");
+                                            lvStrInfo.Append(lvGene.HeadWayTime);
+                                            lvStrInfo.Append("; pGene.Time: ");
+                                            lvStrInfo.Append(pGene.Time);
+                                            lvStrInfo.Append("; pGene.HeadWayTime: ");
+                                            lvStrInfo.Append(pGene.HeadWayTime);
+                                            lvStrInfo.Append(")");
+
+                                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                        }
+#endif
+
+                                        lvValues = null;
+                                        break;
                                     }
                                     else
                                     {
@@ -2842,37 +2909,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 #endif
                                     }
                                 }
-                                else if(lvBreakcondiction)
-                                {
-#if DEBUG
-                                    if (DebugLog.EnableDebug)
-                                    {
-                                        StringBuilder lvStrInfo = new StringBuilder();
-
-                                        if (pInStopLocation)
-                                        {
-                                            lvStrInfo.Append("GetHeadWays in Stop Location => Breaking devido a Breaking Condition (lvGene.Time: ");
-                                        }
-                                        else
-                                        {
-                                            lvStrInfo.Append("GetHeadWays between Stop Location => Breaking devido a lvGene.Time < pGene.Time (lvGene.Time: ");
-                                        }
-
-                                        lvStrInfo.Append(lvGene.Time);
-                                        lvStrInfo.Append("; lvGene.HeadWayTime: ");
-                                        lvStrInfo.Append(lvGene.HeadWayTime);
-                                        lvStrInfo.Append("; pGene.Time: ");
-                                        lvStrInfo.Append(pGene.Time);
-                                        lvStrInfo.Append("; pGene.HeadWayTime: ");
-                                        lvStrInfo.Append(pGene.HeadWayTime);
-                                        lvStrInfo.Append(")");
-
-                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                                    }
-#endif
-
-                                    break;
-                                }
                             }
                         }
                     }
@@ -2882,64 +2918,44 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         if (pInStopLocation)
                         {
                             lvInterdictions = new Interdicao[pStopLocation.Capacity];
-                            lvStopLocations = StopLocation.GetStopLocationsUpToSwitch(pStopLocation, pStopLocation.GetNextSwitchSegment(pGene.Direction), pGene.Direction);
 
-                            foreach (StopLocation lvStopLoc in lvStopLocations)
+                            for (int i = 0; i < lvStopLoc.Capacity; i++)
                             {
-                                for (int i = 0; i < pStopLocation.Capacity; i++)
+                                lvInterdiction = GetInterdiction(lvStopLoc.Start_coordinate, lvStopLoc.End_coordinate, pGene.Time, i + 1);
+
+                                if (lvInterdiction != null)
                                 {
-                                    lvInterdiction = GetInterdiction(lvStopLoc.Start_coordinate, lvStopLoc.End_coordinate, pGene.Time, i + 1);
+                                    lvValues = new Gene[2];
 
-                                    if (lvInterdiction != null)
+                                    lvGen = new Gene();
+                                    lvGen.TrainId = 0;
+                                    lvGen.Time = lvInterdiction.Start_time;
+                                    lvGen.HeadWayTime = lvInterdiction.Start_time;
+                                    lvGen.Track = lvInterdiction.Track;
+                                    lvValues[0] = lvGen;
+
+                                    lvGen = new Gene();
+                                    lvGen.TrainId = 0;
+                                    lvGen.Time = lvInterdiction.End_time;
+                                    lvGen.HeadWayTime = lvInterdiction.End_time;
+                                    lvGen.Track = lvInterdiction.Track;
+                                    lvValues[1] = lvGen;
+
+                                    pGeneHeadwaysTime.Add(lvValues);
+
+                                    if (lvInterdictions[i] == null)
                                     {
-                                        lvValues = new Gene[2];
-
-                                        lvGen = new Gene();
-                                        lvGen.TrainId = 0;
-                                        lvGen.Time = lvInterdiction.Start_time;
-                                        lvGen.HeadWayTime = lvInterdiction.Start_time;
-                                        lvGen.Track = lvInterdiction.Track;
-                                        lvValues[0] = lvGen;
-
-                                        lvGen = new Gene();
-                                        lvGen.TrainId = 0;
-                                        lvGen.Time = lvInterdiction.End_time;
-                                        lvGen.HeadWayTime = lvInterdiction.End_time;
-                                        lvGen.Track = lvInterdiction.Track;
-                                        lvValues[1] = lvGen;
-
-                                        pGeneHeadwaysTime.Add(lvValues);
-
-                                        if (lvInterdictions[i] == null)
-                                        {
-                                            lvInterdictions[i] = lvInterdiction;
-                                            pInterdCount++;
-                                        }
-                                        else
-                                        {
-#if DEBUG
-                                            if (DebugLog.EnableDebug)
-                                            {
-                                                StringBuilder lvStrInfo = new StringBuilder();
-
-                                                lvStrInfo.Append("GetHeadWays in Stop Location => interdiction nessa linha já utilizado: ");
-
-                                                lvStrInfo.Append(lvInterdiction);
-
-                                                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-
-                                                //DumpStopLocation(pStopLocation);
-                                            }
-#endif
-
-                                        }
-
+                                        lvInterdictions[i] = lvInterdiction;
+                                        pInterdCount++;
+                                    }
+                                    else
+                                    {
 #if DEBUG
                                         if (DebugLog.EnableDebug)
                                         {
                                             StringBuilder lvStrInfo = new StringBuilder();
 
-                                            lvStrInfo.Append("GetHeadWays in Stop Location => adicionando Interdição: ");
+                                            lvStrInfo.Append("GetHeadWays in Stop Location => interdiction nessa linha já utilizado: ");
 
                                             lvStrInfo.Append(lvInterdiction);
 
@@ -2948,7 +2964,23 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                             //DumpStopLocation(pStopLocation);
                                         }
 #endif
+
                                     }
+
+#if DEBUG
+                                    if (DebugLog.EnableDebug)
+                                    {
+                                        StringBuilder lvStrInfo = new StringBuilder();
+
+                                        lvStrInfo.Append("GetHeadWays in Stop Location => adicionando Interdição: ");
+
+                                        lvStrInfo.Append(lvInterdiction);
+
+                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+
+                                        //DumpStopLocation(pStopLocation);
+                                    }
+#endif
                                 }
                             }
                         }
@@ -2956,7 +2988,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         {
                             lvPrevStopLocation = pStopLocation.GetNextStopSegment(-1 * pGene.Direction);
 
-                            if(lvPrevStopLocation != null)
+                            if (lvPrevStopLocation != null)
                             {
                                 if (pGene.Direction > 0)
                                 {
@@ -3024,7 +3056,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 #endif
                                 }
                             }
-
                         }
                     }
                 }
@@ -3729,7 +3760,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 #endif
             }
 
-            /* force use the track of Stop Location Available */
+            /* force to use the track of Stop Location Available */
             if ((lvOccupCount < pNextStopLocation.Capacity) && (Math.Abs(pSumDir) < pNextStopLocation.Capacity))
             {
                 for (int i = 0; i < pOccup.Length; i++)
@@ -4601,7 +4632,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         Gene[] lvArrGenes = null;
         TrainPerformanceControl lvTrainPerformance = null;
         TrainPerformanceControl lvPrevTrainPerformance = null;
-        List<StopLocation> lvStopLocations = null;
         StopLocation lvStopLocation = null;
         StopLocation lvNextStopLocation = null;
         StopLocation lvEndStopLocation = null;
@@ -4613,7 +4643,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         Segment lvNextSwitch = null;
         Segment lvNextSwitchAfterStopLocation = null;
         Interdicao lvInterdiction = null;
-        List<Interdicao> lvInterdictions = null;
         DateTime lvFirstEndInterdictionTime = DateTime.MaxValue;
         DateTime lvCurrentTime = DateTime.MinValue;
         DateTime lvDepTime;
@@ -4621,8 +4650,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         TimeSpan lvDiffTime;
         List<Gene[]> lvGeneHeadwaysTime = new List<Gene[]>();
         List<Gene[]> lvGeneInStopLocationTime = new List<Gene[]>();
-        DateTime[] lvArrLastDepTime = null;
-        DateTime[] lvArrLastArrTime = null;
         DateTime lvLastDepTime = DateTime.MinValue;
         double lvMeanSpeed = 0.0;
         double lvHeadWayTime = 0.0;
@@ -4640,7 +4667,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
         int lvDestTrack = 0;
         int lvLastOccupCount = 0;
         int lvSumDir = 0;
-        int lvInterdCount = 0;
         bool[] lvLastOccup = null;
         bool lvHasSameDirection = false;
         bool lvIsBetweenSwitch = false;
@@ -5572,6 +5598,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     }
                 }
 
+                /*
                 if (lvNextCapacity == 1)
                 {
                     DebugLog.EnableDebug = lvIsLogEnables;
@@ -5652,6 +5679,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                         }
                     }
                 }
+                */
 
                 if (pNoStopBeforeSwitch) lvGotTrainMovPriority = true;
             }
@@ -5804,68 +5832,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 }
             }
 
-            /*
-            if (Interdicao.GetList().Count > 0)
-            {
-                if (lvGene.Direction > 0)
-                {
-                    if ((lvStopLocation != null) && (lvStopLocation.End_coordinate < lvNextStopLocation.Start_coordinate))
-                    {
-                        lvInterdiction = GetInterdiction(lvStopLocation.End_coordinate, lvNextStopLocation.Start_coordinate, lvCurrentTime, 1);
-                    }
-                    else
-                    {
-                        lvInterdiction = GetInterdiction(lvGene.Coordinate, lvNextStopLocation.Start_coordinate, lvCurrentTime, 1);
-                    }
-                }
-                else
-                {
-                    if ((lvStopLocation != null) && (lvNextStopLocation.End_coordinate < lvStopLocation.Start_coordinate))
-                    {
-                        lvInterdiction = GetInterdiction(lvNextStopLocation.End_coordinate, lvStopLocation.Start_coordinate, lvCurrentTime, 1);
-                    }
-                    else
-                    {
-                        lvInterdiction = GetInterdiction(lvNextStopLocation.End_coordinate, lvGene.Coordinate, lvCurrentTime, 1);
-                    }
-                }
-
-                // interdiction between Stop Locations
-                if ((lvInterdiction != null) && (lvInterdiction.End_time > lvCurrentTime))
-                {
-                    lvCurrentTime = lvInterdiction.End_time;
-
-#if DEBUG
-                    if (DebugLog.EnableDebug)
-                    {
-                        StringBuilder lvStrInfo = new StringBuilder();
-
-                        lvStrInfo.Clear();
-                        lvStrInfo.Append("lvCurrentTime atualizado por lvEndInterditionTime para Gene (");
-                        lvStrInfo.Append(lvGene.TrainId);
-                        lvStrInfo.Append(" - ");
-                        lvStrInfo.Append(lvGene.TrainName);
-                        lvStrInfo.Append(") = ");
-                        lvStrInfo.Append(lvCurrentTime);
-
-                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                    }
-#endif
-                }
-            }
-            */
-
-            /*
-            if (lvCurrentTime > mDateRef.AddDays(mLimitDays))
-            {
-                if (mDicTrain.ContainsKey(lvGene.TrainId))
-                {
-                    mDicTrain.Remove(lvGene.TrainId);
-                }
-                return lvRes;
-            }
-            */
-
             if (lvGene.DepartureTime == lvGene.Time)
             {
                 lvSpentTime = 0.0;
@@ -5943,143 +5909,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     lvInitCoordinate = lvLocDepartureSegment.End_coordinate;
                 }
             }
-
-            /*
-            lvLastOccupCount = lvNextCapacity;
-            lvInterdCount = 0;
-
-#if DEBUG
-            if (DebugLog.EnableDebug)
-            {
-                StringBuilder lvStrInfo = new StringBuilder();
-
-                lvStrInfo.Clear();
-                lvStrInfo.Append("lvLastOccupCount = ");
-                lvStrInfo.Append(lvLastOccupCount);
-
-                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-            }
-#endif
-
-            lvStopLocations = StopLocation.GetStopLocationsUpToSwitch(lvNextStopLocation, lvNextStopLocation.GetNextSwitchSegment(lvGene.Direction), lvGene.Direction);
-
-            lvInterdictions = new List<Interdicao>();
-            foreach (StopLocation lvStopLoc in lvStopLocations)
-            {
-                for (int i = 0; i < lvNextAvailable.Length; i++)
-                {
-                    if (lvNextAvailable[i] || lvIsTryingReleaseDeadLock)
-                    {
-                        if (Interdicao.GetList().Count > 0)
-                        {
-                            lvInterdiction = GetInterdiction(lvStopLoc.Start_coordinate, lvStopLoc.End_coordinate, lvCurrentTime, i + 1);
-
-                            if (lvInterdiction != null)
-                            {
-                                if (lvNextAvailable[i])
-                                {
-                                    lvInterdictions.Add(lvInterdiction);
-                                }
-
-                                if (lvInterdiction.End_time >= lvCurrentTime)
-                                {
-                                    if (lvNextAvailable[i])
-                                    {
-                                        lvLastOccupCount--;
-                                        lvInterdCount++;
-
-#if DEBUG
-                                        if (DebugLog.EnableDebug)
-                                        {
-                                            StringBuilder lvStrInfo = new StringBuilder();
-
-                                            lvStrInfo.Clear();
-                                            lvStrInfo.Append("lvLastOccupCount = ");
-                                            lvStrInfo.Append(lvLastOccupCount);
-                                            lvStrInfo.Append("; lvInterdCount = ");
-                                            lvStrInfo.Append(lvInterdCount);
-
-                                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                                        }
-#endif
-                                    }
-
-                                    if (lvInterdiction.End_time < lvFirstEndInterdictionTime)
-                                    {
-                                        lvFirstEndInterdictionTime = lvInterdiction.End_time;
-                                    }
-
-                                    if (lvLastOccupCount <= 0)
-                                    {
-                                        if ((lvFirstEndInterdictionTime > lvCurrentTime) && (lvFirstEndInterdictionTime < DateTime.MaxValue))
-                                        {
-                                            lvCurrentTime = lvFirstEndInterdictionTime;
-
-#if DEBUG
-                                            if (DebugLog.EnableDebug)
-                                            {
-                                                StringBuilder lvStrInfo = new StringBuilder();
-
-                                                lvStrInfo.Clear();
-                                                lvStrInfo.Append("lvCurrentTime foi adiado para lvFirstEndInterdictionTime(");
-                                                lvStrInfo.Append(lvFirstEndInterdictionTime);
-                                                lvStrInfo.Append(") devido interdicao ");
-                                                lvStrInfo.Append(lvInterdiction.Ti_id);
-
-                                                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                                            }
-#endif
-                                        }
-
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        lvNextAvailable[i] = false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if(lvLastOccupCount < lvNextCapacity)
-            {
-                lvGotTrainMovPriority = true;
-
-#if DEBUG
-                if (DebugLog.EnableDebug)
-                {
-                    StringBuilder lvStrInfo = new StringBuilder();
-
-                    lvStrInfo.Clear();
-                    lvStrInfo.Append("lvGotTrainMovPriority = true !!!");
-
-                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                }
-#endif
-
-                lvNextCapacity = 0;
-                for (int i = 0; i < lvNextAvailable.Length; i++)
-                {
-                    if (lvNextAvailable[i])
-                    {
-                        lvNextCapacity++;
-                    }
-                }
-            }
-            else if(lvLastOccupCount == 0)
-            {
-                foreach(Interdicao lvInterd in lvInterdictions)
-                {
-                    if ((lvInterd.Track <= lvNextStopLocation.Capacity) && (lvInterd.Track > 0))
-                    {
-                        lvNextAvailable[lvInterd.Track - 1] = true;
-                    }
-                }
-            }
-            */
 
 #if DEBUG
             if (DebugLog.EnableDebug)
@@ -6224,131 +6053,6 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
             }
 #endif
-
-            /*
-            if ((lvNextCapacity == 1) && ((lvHasSameDirection) || (lvNextStopLocation.Capacity - (lvSumDir * lvGene.Direction + lvInterdCount) == lvLastOccupCount)))
-            {
-                lvLastOccupCount = 0;
-                lvStopLocationAfterSwitch = null;
-                if (lvNextSwitch != null)
-                {
-                    lvStopLocationAfterSwitch = lvNextSwitch.GetNextStopLocation(lvGene.Direction);
-                }
-
-                if (lvStopLocationAfterSwitch != null)
-                {
-                    lvNextSwitchAfterStopLocation = lvStopLocationAfterSwitch.GetNextSwitchSegment(lvGene.Direction);
-
-                    if (lvLastOccup == null)
-                    {
-                        VerifyNextSegment(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, true, out lvHasSameDirection, out lvSumDir, out lvLastOccup, out lvLastOccupCount);
-
-                        if((lvSumDir * lvGene.Direction * -1) >= lvStopLocationAfterSwitch.Capacity)
-                        {
-                            lvLastOccupCount = lvStopLocationAfterSwitch.Capacity;
-
-#if DEBUG
-                            if (DebugLog.EnableDebug)
-                            {
-                                StringBuilder lvStrInfo = new StringBuilder();
-
-                                lvStrInfo.Clear();
-                                lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de elementos finais estarem em sentido contra e sem lvHasSameDirection !!!");
-
-                                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                            }
-#endif
-                        }
-                    }
-
-                    if((lvLastOccupCount < lvStopLocationAfterSwitch.Capacity) && (lvNextSwitchAfterStopLocation != null))
-                    {
-                        for (int i = 0; i < lvStopLocationAfterSwitch.Capacity; i++)
-                        {
-                            if ((i < lvLastOccup.Length) && lvLastOccup[i])
-                            {
-                                lvLastOccupCount++;
-                            }
-                            else
-                            {
-                                if (Interdicao.GetList().Count > 0)
-                                {
-                                    if (lvGene.Direction > 0)
-                                    {
-                                        lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.Start_coordinate, lvNextSwitchAfterStopLocation.Start_coordinate, lvCurrentTime, i + 1);
-                                    }
-                                    else
-                                    {
-                                        lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.End_coordinate, lvNextSwitchAfterStopLocation.End_coordinate, lvCurrentTime, i + 1);
-                                    }
-
-                                    if (lvInterdiction != null)
-                                    {
-                                        if (lvInterdiction.End_time >= lvCurrentTime)
-                                        {
-                                            lvLastOccupCount++;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if(lvLastOccupCount >= lvStopLocationAfterSwitch.Capacity)
-                    {
-                        lvNextAvailable = new bool[lvNextStopLocation.Capacity];
-                        lvNextCapacity = 0;
-
-#if DEBUG
-                        if (DebugLog.EnableDebug)
-                        {
-                            StringBuilder lvStrInfo = new StringBuilder();
-
-                            lvStrInfo.Clear();
-                            lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de interdições");
-
-                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                        }
-#endif
-                    }
-                    else if((lvStopLocationAfterSwitch.NoStopSet != null) && (lvStopLocationAfterSwitch.NoStopSet.Count > 0))
-                    {
-                        if(lvStopLocationAfterSwitch.HasNoStop(lvGene.TrainName.Substring(0, 1) + lvGene.Direction))
-                        {
-                            lvInternRes = VerifySegmentDeadLock(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
-
-                            lvCount = 0;
-
-                            foreach(bool lvValue in lvInternRes)
-                            {
-                                if(lvValue)
-                                {
-                                    break;
-                                }
-
-                                lvCount++;
-                            }
-
-                            if (lvCount >= lvStopLocation.Capacity)
-                            {
-                                return lvRes;
-                            }
-                        }
-                        else
-                        {
-                            if ((lvGene.Direction > 0) && lvStopLocationAfterSwitch.HasBackwardDirection)
-                            {
-                                return lvRes;
-                            }
-                            else if ((lvGene.Direction < 0) && lvStopLocationAfterSwitch.HasForwardDirection)
-                            {
-                                return lvRes;
-                            }
-                        }
-                    }
-                }
-            }
-            */
 
             for (int i = 0; i < lvNextAvailable.Length; i++)
             {
@@ -6545,98 +6249,48 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                 }
 #endif
 
-                lvCurrentTimeUpdated = false;
-                if (lvGeneInStopLocationTime.Count > 0)
+                lvCurrentTimeUpdated = true;
+                while (lvCurrentTimeUpdated)
                 {
-                    if ((lvNextCapacity == 1) && !lvIsBetweenSwitch)
+                    lvCurrentTimeUpdated = false;
+                    if (lvGeneInStopLocationTime.Count > 0)
                     {
-                        for(int i = lvGeneInStopLocationTime.Count-1; i >= 0; i--)
+                        if ((lvNextCapacity == 1) && !lvIsBetweenSwitch)
                         {
-                            lvArrGenes = lvGeneInStopLocationTime[i];
-
-                            if ((lvArrGenes[1].Track == lvDestTrack) && (lvArrGenes[1].HeadWayTime > lvCurrentTime))
+                            for (int i = lvGeneInStopLocationTime.Count - 1; i >= 0; i--)
                             {
-                                lvCurrentTime = lvArrGenes[1].HeadWayTime;
-                                lvCurrentTimeUpdated = true;
+                                lvArrGenes = lvGeneInStopLocationTime[i];
 
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        lvArrLastDepTime = new DateTime[lvNextStopLocation.Capacity];
-
-                        foreach (Gene[] lvGens in lvGeneInStopLocationTime)
-                        {
-                            if ((lvGens[1] != null) && (lvGens[1].Time > lvArrLastDepTime[lvGens[1].Track - 1]))
-                            {
-                                lvArrLastDepTime[lvGens[1].Track - 1] = lvGens[1].Time;
-                            }
-                        }
-
-                        lvDepTime = DateTime.MaxValue;
-                        for (int i = 0; i < lvArrLastDepTime.Length; i++)
-                        {
-                            if ((lvArrLastDepTime[i] < lvDepTime) && lvNextAvailable[i])
-                            {
-                                lvDepTime = lvArrLastDepTime[i];
-                                lvDestTrack = i + 1;
-
-#if DEBUG
-                                if (DebugLog.EnableDebug)
+                                if ((lvArrGenes[1] != null) && (lvArrGenes[1].Track == lvDestTrack) && (lvArrGenes[1].HeadWayTime > lvCurrentTime))
                                 {
-                                    StringBuilder lvStrInfo = new StringBuilder();
+                                    lvCurrentTime = lvArrGenes[1].HeadWayTime;
+                                    lvCurrentTimeUpdated = true;
 
-                                    lvStrInfo.Clear();
-                                    lvStrInfo.Append("lvDestTrack alterado por lvGeneInStopLocationTime para ");
-                                    lvStrInfo.Append(lvDestTrack);
-                                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                    break;
                                 }
-#endif
                             }
                         }
-
-                        if (lvDepTime > lvCurrentTime)
+                        else
                         {
-                            lvCurrentTime = lvDepTime;
-                            lvCurrentTimeUpdated = true;
-                        }
+                            lvArrGenes = new Gene[lvNextStopLocation.Capacity];
 
-                        if ((lvLastOccupCount > 0) && ((lvNextCapacity - lvLastOccupCount) <= 1) && (lvIsBetweenSwitch || (lvNextCapacity > 1)))
-                        {
-                            lvGotTrainMovPriority = true;
-
-#if DEBUG
-                            if (DebugLog.EnableDebug)
+                            foreach (Gene[] lvGens in lvGeneInStopLocationTime)
                             {
-                                StringBuilder lvStrInfo = new StringBuilder();
-
-                                lvStrInfo.Clear();
-                                lvStrInfo.Append("lvGotTrainMovPriority = true !!!");
-
-                                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                            }
-#endif
-
-                            lvLastOccupCount = 0;
-                            lvStopLocationAfterSwitch = null;
-                            if (lvNextSwitch != null)
-                            {
-                                lvStopLocationAfterSwitch = lvNextSwitch.GetNextStopLocation(lvGene.Direction);
-                            }
-
-                            if (lvStopLocationAfterSwitch != null)
-                            {
-                                lvNextSwitchAfterStopLocation = lvStopLocationAfterSwitch.GetNextSwitchSegment(lvGene.Direction);
-
-                                if (lvLastOccup == null)
+                                if ((lvGens[1] != null) && ((lvArrGenes[lvGens[1].Track - 1] == null) || (lvGens[1].Time > lvArrGenes[lvGens[1].Track - 1].Time)))
                                 {
-                                    VerifyNextSegment(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, true, out lvHasSameDirection, out lvSumDir, out lvLastOccup, out lvLastOccupCount);
+                                    lvArrGenes[lvGens[1].Track - 1] = lvGens[1];
+                                }
+                            }
 
-                                    if ((lvSumDir * lvGene.Direction * -1) >= lvStopLocationAfterSwitch.Capacity)
+                            lvDepTime = DateTime.MaxValue;
+                            for (int i = 0; i < lvArrGenes.Length; i++)
+                            {
+                                if (lvArrGenes[i] != null)
+                                {
+                                    if ((lvArrGenes[i].Time < lvDepTime) && lvNextAvailable[i] && (lvArrGenes[i].Time > lvCurrentTime))
                                     {
-                                        lvLastOccupCount = lvStopLocationAfterSwitch.Capacity;
+                                        lvDepTime = lvArrGenes[i].Time;
+                                        lvDestTrack = i + 1;
 
 #if DEBUG
                                         if (DebugLog.EnableDebug)
@@ -6644,51 +6298,17 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                             StringBuilder lvStrInfo = new StringBuilder();
 
                                             lvStrInfo.Clear();
-                                            lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de elementos finais estarem em sentido contra e sem lvHasSameDirection !!!");
-
+                                            lvStrInfo.Append("lvDestTrack alterado por lvGeneInStopLocationTime em ");
+                                            lvStrInfo.Append(lvDestTrack);
                                             DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
                                         }
 #endif
                                     }
                                 }
-
-                                if ((lvLastOccupCount < lvStopLocationAfterSwitch.Capacity) && (lvNextSwitchAfterStopLocation != null))
+                                else if (lvNextAvailable[i])
                                 {
-                                    for (int i = 0; i < lvStopLocationAfterSwitch.Capacity; i++)
-                                    {
-                                        if ((i < lvLastOccup.Length) && lvLastOccup[i])
-                                        {
-                                            lvLastOccupCount++;
-                                        }
-                                        else
-                                        {
-                                            if (Interdicao.GetList().Count > 0)
-                                            {
-                                                if (lvGene.Direction > 0)
-                                                {
-                                                    lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.Start_coordinate, lvNextSwitchAfterStopLocation.Start_coordinate, lvCurrentTime, i + 1);
-                                                }
-                                                else
-                                                {
-                                                    lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.End_coordinate, lvNextSwitchAfterStopLocation.End_coordinate, lvCurrentTime, i + 1);
-                                                }
-
-                                                if (lvInterdiction != null)
-                                                {
-                                                    if (lvInterdiction.End_time >= lvCurrentTime)
-                                                    {
-                                                        lvLastOccupCount++;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (lvLastOccupCount >= lvStopLocationAfterSwitch.Capacity)
-                                {
-                                    lvNextAvailable = new bool[lvNextStopLocation.Capacity];
-                                    lvNextCapacity = 0;
+                                    lvDepTime = lvCurrentTime;
+                                    lvDestTrack = i + 1;
 
 #if DEBUG
                                     if (DebugLog.EnableDebug)
@@ -6696,78 +6316,202 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                         StringBuilder lvStrInfo = new StringBuilder();
 
                                         lvStrInfo.Clear();
-                                        lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de interdições");
-
+                                        lvStrInfo.Append("lvDestTrack alterado por lvGeneInStopLocationTime para ");
+                                        lvStrInfo.Append(lvDestTrack);
                                         DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
                                     }
 #endif
+
+                                    break;
                                 }
-                                else if ((lvStopLocationAfterSwitch.NoStopSet != null) && (lvStopLocationAfterSwitch.NoStopSet.Count > 0))
+                            }
+
+                            if ((lvDepTime > lvCurrentTime) && ((lvArrGenes[lvDestTrack - 1].StopLocation == null) || (lvArrGenes[lvDestTrack - 1].StopLocation.Location == lvNextStopLocation.Location)))
+                            {
+                                lvCurrentTime = lvDepTime;
+                                lvCurrentTimeUpdated = true;
+                            }
+
+                            if ((lvLastOccupCount > 0) && ((lvNextCapacity - lvLastOccupCount) <= 1) && (lvIsBetweenSwitch || (lvNextCapacity > 1)))
+                            {
+                                lvGotTrainMovPriority = true;
+
+#if DEBUG
+                                if (DebugLog.EnableDebug)
                                 {
-                                    if (lvStopLocationAfterSwitch.HasNoStop(lvGene.TrainName.Substring(0, 1) + lvGene.Direction))
+                                    StringBuilder lvStrInfo = new StringBuilder();
+
+                                    lvStrInfo.Clear();
+                                    lvStrInfo.Append("lvGotTrainMovPriority = true !!!");
+
+                                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                }
+#endif
+
+                                lvLastOccupCount = 0;
+                                lvStopLocationAfterSwitch = null;
+                                if (lvNextSwitch != null)
+                                {
+                                    lvStopLocationAfterSwitch = lvNextSwitch.GetNextStopLocation(lvGene.Direction);
+                                }
+
+                                if (lvStopLocationAfterSwitch != null)
+                                {
+                                    lvNextSwitchAfterStopLocation = lvStopLocationAfterSwitch.GetNextSwitchSegment(lvGene.Direction);
+
+                                    if (lvLastOccup == null)
                                     {
-                                        lvInternRes = VerifySegmentDeadLock(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+                                        VerifyNextSegment(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, true, out lvHasSameDirection, out lvSumDir, out lvLastOccup, out lvLastOccupCount);
 
-                                        lvCount = 0;
-
-                                        foreach (bool lvValue in lvInternRes)
+                                        if ((lvSumDir * lvGene.Direction * -1) >= lvStopLocationAfterSwitch.Capacity)
                                         {
-                                            if (lvValue)
+                                            lvLastOccupCount = lvStopLocationAfterSwitch.Capacity;
+
+#if DEBUG
+                                            if (DebugLog.EnableDebug)
                                             {
-                                                break;
+                                                StringBuilder lvStrInfo = new StringBuilder();
+
+                                                lvStrInfo.Clear();
+                                                lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de elementos finais estarem em sentido contra e sem lvHasSameDirection !!!");
+
+                                                DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
                                             }
-
-                                            lvCount++;
-                                        }
-
-                                        if (lvCount >= lvStopLocation.Capacity)
-                                        {
-                                            return lvRes;
+#endif
                                         }
                                     }
-                                    else
+
+                                    if ((lvLastOccupCount < lvStopLocationAfterSwitch.Capacity) && (lvNextSwitchAfterStopLocation != null))
                                     {
-                                        if ((lvGene.Direction > 0) && lvStopLocationAfterSwitch.HasBackwardDirection)
+                                        for (int i = 0; i < lvStopLocationAfterSwitch.Capacity; i++)
                                         {
-                                            return lvRes;
+                                            if ((i < lvLastOccup.Length) && lvLastOccup[i])
+                                            {
+                                                lvLastOccupCount++;
+                                            }
+                                            else
+                                            {
+                                                if (Interdicao.GetList().Count > 0)
+                                                {
+                                                    if (lvGene.Direction > 0)
+                                                    {
+                                                        lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.Start_coordinate, lvNextSwitchAfterStopLocation.Start_coordinate, lvCurrentTime, i + 1);
+                                                    }
+                                                    else
+                                                    {
+                                                        lvInterdiction = GetInterdiction(lvStopLocationAfterSwitch.End_coordinate, lvNextSwitchAfterStopLocation.End_coordinate, lvCurrentTime, i + 1);
+                                                    }
+
+                                                    if (lvInterdiction != null)
+                                                    {
+                                                        if (lvInterdiction.End_time >= lvCurrentTime)
+                                                        {
+                                                            lvLastOccupCount++;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
-                                        else if ((lvGene.Direction < 0) && lvStopLocationAfterSwitch.HasForwardDirection)
+                                    }
+
+                                    if (lvLastOccupCount >= lvStopLocationAfterSwitch.Capacity)
+                                    {
+                                        lvNextAvailable = new bool[lvNextStopLocation.Capacity];
+                                        lvNextCapacity = 0;
+
+#if DEBUG
+                                        if (DebugLog.EnableDebug)
                                         {
-                                            return lvRes;
+                                            StringBuilder lvStrInfo = new StringBuilder();
+
+                                            lvStrInfo.Clear();
+                                            lvStrInfo.Append("NextCapacity reduzida para 0 para evitar DeadLocks por causa de interdições");
+
+                                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                        }
+#endif
+                                    }
+                                    else if ((lvStopLocationAfterSwitch.NoStopSet != null) && (lvStopLocationAfterSwitch.NoStopSet.Count > 0))
+                                    {
+                                        if (lvStopLocationAfterSwitch.HasNoStop(lvGene.TrainName.Substring(0, 1) + lvGene.Direction))
+                                        {
+                                            lvInternRes = VerifySegmentDeadLock(lvGene, lvStopLocationAfterSwitch, lvNextSwitchAfterStopLocation, out lvHasSameDirection, out lvSumDir, out lvLastOccup);
+
+                                            lvCount = 0;
+
+                                            foreach (bool lvValue in lvInternRes)
+                                            {
+                                                if (lvValue)
+                                                {
+                                                    break;
+                                                }
+
+                                                lvCount++;
+                                            }
+
+                                            if (lvCount >= lvStopLocation.Capacity)
+                                            {
+                                                return lvRes;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if ((lvGene.Direction > 0) && lvStopLocationAfterSwitch.HasBackwardDirection)
+                                            {
+                                                return lvRes;
+                                            }
+                                            else if ((lvGene.Direction < 0) && lvStopLocationAfterSwitch.HasForwardDirection)
+                                            {
+                                                return lvRes;
+                                            }
                                         }
                                     }
                                 }
                             }
-
                         }
                     }
-                }
 
 #if DEBUG
-                if (DebugLog.EnableDebug && lvCurrentTimeUpdated)
-                {
-                    StringBuilder lvStrInfo = new StringBuilder();
+                    if (DebugLog.EnableDebug && lvCurrentTimeUpdated)
+                    {
+                        StringBuilder lvStrInfo = new StringBuilder();
 
-                    lvStrInfo.Clear();
-                    lvStrInfo.Append("lvCurrentTime alterado por lvGeneInStopLocationTime para ");
-                    lvStrInfo.Append(lvCurrentTime);
-                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                }
+                        lvStrInfo.Clear();
+                        lvStrInfo.Append("lvCurrentTime alterado por lvGeneInStopLocationTime para ");
+                        lvStrInfo.Append(lvCurrentTime);
+                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                    }
 #endif
 
-                if (lvCurrentTimeUpdated)
-                {
-                    lvStayTime = (lvCurrentTime - lvGene.Time).TotalHours;
-                    if (lvSpentTime < lvStayTime)
+                    if (lvCurrentTimeUpdated)
                     {
-                        lvSpentTime = lvStayTime;
+                        lvStayTime = (lvCurrentTime - lvGene.Time).TotalHours;
+                        if (lvSpentTime < lvStayTime)
+                        {
+                            lvSpentTime = lvStayTime;
+                        }
+
+                        lvSpentTime = UpdateSpentTimeForHeadways(lvSpentTime, lvGeneHeadwaysTime, lvGene, lvDistance, lvNextStopLocation, lvEndCoordinate, ref lvCurrentTime, out lvMeanSpeed, out lvDepTime, out lvArrTime, out pUsedHeadway);
+
+                        lvNewGene.Time = lvArrTime;
+                        lvNewGene.HeadWayTime = lvArrTime;
+                        lvNewGene.Track = (short)lvDestTrack;
+
+                        lvGeneInStopLocationTime = new List<Gene[]>();
+                        GetHeadWays(lvNewGene, lvNextStopLocation, 0, ref lvGeneInStopLocationTime, out lvLastOccupCount, true);
+
+#if DEBUG
+                        if (DebugLog.EnableDebug)
+                        {
+                            StringBuilder lvStrInfo = new StringBuilder();
+
+                            lvStrInfo.Clear();
+                            lvStrInfo.Append("lvGeneInStopLocationTime.Count = ");
+                            lvStrInfo.Append(lvGeneInStopLocationTime.Count);
+                            DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                        }
+#endif
                     }
-
-                    lvSpentTime = UpdateSpentTimeForHeadways(lvSpentTime, lvGeneHeadwaysTime, lvGene, lvDistance, lvNextStopLocation, lvEndCoordinate, ref lvCurrentTime, out lvMeanSpeed, out lvDepTime, out lvArrTime, out pUsedHeadway);
-
-                    lvNewGene.Time = lvArrTime;
-                    lvNewGene.HeadWayTime = lvArrTime;
-                    lvNewGene.Track = (short)lvDestTrack;
                 }
 
 #if DEBUG
@@ -6811,53 +6555,89 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                             }
                             else
                             {
-                                lvStrInfo.Append("MoveTrain.lvNoStopMovement[0].Time = " + lvNoStopMovement[0].Time);
+                                lvStrInfo.Append("MoveTrain.lvNoStopMovement[0].Time = " + lvNoStopMovement[0].Time + "\n");
                                 lvStrInfo.Append("MoveTrain.lvNoStopMovement[0].HeadWayTime = " + lvNoStopMovement[0].HeadWayTime);
                             }
                             DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
                         }
 #endif
 
-                        /* Precisa verificar a partida do próximo stop location para evitar conflito de utilização de linhas */
-
-                        //if((pUsedHeadway != null) && lvNoStopMovement[0].Time >= pUsedHeadway[1].Time)
-                        if (pUsedHeadway != null)
+                        /* Verificar se saída está dentro de interdição ou movimentação de trem */
+                        if ((lvNoStopMovement != null) && lvNoStopMovement[0].StopLocation != null)
                         {
-                            if(lvNextCapacity == 1)
+                            lvGeneInStopLocationTime = new List<Gene[]>();
+                            GetHeadWays(lvNoStopMovement[0], lvNoStopMovement[0].StopLocation, 0, ref lvGeneInStopLocationTime, out lvLastOccupCount, true, lvArrTime);
+                            lvDepTime = DateTime.MaxValue;
+                            lvCurrentTimeUpdated = false;
+
+                            foreach (Gene[] lvGens in lvGeneInStopLocationTime)
                             {
-                                if (pUsedHeadway[0].HeadWayTime > lvCurrentTime)
+                                if((lvGens[0] != null) && (lvGens[0].Track == lvDestTrack))
                                 {
-                                    lvCurrentTime = pUsedHeadway[0].HeadWayTime;
-                                }
+                                    for(int i = 0; i < lvNextAvailable.Length; i++)
+                                    {
+                                        if (lvNextAvailable[i])
+                                        {
+                                            if ((lvArrGenes != null) && (lvArrGenes[i] != null))
+                                            {
+                                                if (lvArrGenes[i].Time < lvDepTime)
+                                                {
+                                                    lvDestTrack = i + 1;
+                                                    lvCurrentTime = lvArrGenes[i].Time;
+                                                    lvDepTime = lvCurrentTime;
+                                                    lvCurrentTimeUpdated = true;
 
 #if DEBUG
-                                if (DebugLog.EnableDebug)
-                                {
-                                    StringBuilder lvStrInfo = new StringBuilder();
+                                                    if (DebugLog.EnableDebug)
+                                                    {
+                                                        StringBuilder lvStrInfo = new StringBuilder();
 
-                                    lvStrInfo.Clear();
-                                    lvStrInfo.Append("lvCurrentTime = " + lvCurrentTime);
-                                    DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
-                                }
+                                                        lvStrInfo.Clear();
+                                                        lvStrInfo.Append("lvCurrentTime = " + lvCurrentTime);
+                                                        lvStrInfo.Append("lvDestTrack alterada para Linha " + lvDestTrack + " pela partida seguinte");
+                                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                                    }
+#endif
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if ((i + 1) != lvGens[0].Track)
+                                                {
+                                                    lvDestTrack = i + 1;
+                                                    lvDepTime = lvCurrentTime;
+
+#if DEBUG
+                                                    if (DebugLog.EnableDebug)
+                                                    {
+                                                        StringBuilder lvStrInfo = new StringBuilder();
+
+                                                        lvStrInfo.Clear();
+                                                        lvStrInfo.Append("lvDestTrack alterada para Linha " + lvDestTrack + " pela partida seguinte");
+                                                        DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
+                                                    }
 #endif
 
-                                lvStayTime = (lvCurrentTime - lvGene.Time).TotalHours;
-                                if (lvSpentTime < lvStayTime)
-                                {
-                                    lvSpentTime = lvStayTime;
-                                }
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
 
-                                lvSpentTime = UpdateSpentTimeForHeadways(lvSpentTime, lvGeneHeadwaysTime, lvGene, lvDistance, lvNextStopLocation, lvEndCoordinate, ref lvCurrentTime, out lvMeanSpeed, out lvDepTime, out lvArrTime, out pUsedHeadway);
-                            }
-                            else if(lvNextCapacity > 1)
-                            {
-                                if(lvDestTrack == pUsedHeadway[1].Track)
-                                {
-                                    for (int i = 0; i < lvNextAvailable.Length; i++)
+                                    if(lvCurrentTimeUpdated)
                                     {
-                                        if((i+1) != lvDestTrack)
+                                        lvNewGene = lvGene.Clone();
+
+                                        lvNewGene.Time = lvCurrentTime;
+
+                                        lvNoStopMovement = new TrainMovement();
+                                        lvNoStopMovement.Add(lvNewGene);
+
+                                        lvNoStopMovement = (TrainMovement)MoveTrain(lvNoStopMovement, out pUsedHeadway, pInitialTime, false);
+
+                                        if((lvNoStopMovement != null) && lvNoStopMovement[0].Time > lvCurrentTime)
                                         {
-                                            lvDestTrack = i + 1;
+                                            lvCurrentTime = lvNoStopMovement[0].Time;
 
 #if DEBUG
                                             if (DebugLog.EnableDebug)
@@ -6865,11 +6645,10 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                                 StringBuilder lvStrInfo = new StringBuilder();
 
                                                 lvStrInfo.Clear();
-                                                lvStrInfo.Append("lvDestTrack alterada para Linha " + lvDestTrack);
+                                                lvStrInfo.Append("lvCurrentTime após verificação no destino = " + lvCurrentTime);
                                                 DebugLog.Logar(lvStrInfo.ToString(), pIndet: TrainIndividual.IDLog);
                                             }
 #endif
-                                            break;
                                         }
                                     }
                                 }
@@ -6893,6 +6672,7 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
                     if (pUpdate)
                     {
+                        lvDepTime = lvCurrentTime;
                         UpdateLastArrival(lvGene);
 
                         /* Verify if mean speed increased due to train is arriving later */
@@ -6966,6 +6746,11 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     lvGenesStopLocationSet = mStopLocationDeparture[lvNewGene.StopLocation.Location];
                     if (lvGene.Track <= lvNextAvailable.Length)
                     {
+                        if (lvGenesStopLocationSet.Contains(lvNewGene))
+                        {
+                            lvGenesStopLocationSet.Remove(lvNewGene);
+                        }
+
                         //lvGenesStopLocation[(lvNewGene.Track - 1) * 2 + Math.Max(0, (int)lvNewGene.Direction)] = lvNewGene;
                         lvGenesStopLocationSet.Add(lvNewGene);
 
@@ -7255,6 +7040,10 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                     lvGenesStopLocationSet = mStopLocationArrival[lvNewGene.StopLocation.Location];
                     if (lvNewGene.Track <= lvNextAvailable.Length)
                     {
+                        if (lvGenesStopLocationSet.Contains(lvNewGene))
+                        {
+                            lvGenesStopLocationSet.Remove(lvNewGene);
+                        }
                         lvGenesStopLocationSet.Add(lvNewGene);
 
 #if DEBUG
@@ -7360,15 +7149,33 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                     lvNoStopMovement.Add(lvRes, 0);
                                     lvRes = lvNoStopMovement;
                                 }
+                                /*
+                                else if((((lvNextStopLocation.End_coordinate - lvNextStopLocation.Start_coordinate) / 100000.0) / (lvNoStopMovement[0].Time - lvRes[1].Time).TotalHours) > mMinSpeedLimit)
+                                {
+
+                                }
+                                */
                                 else
                                 {
-                                    if ((lvRes[0].StopLocation != null) && (lvRes.Count > 1) && pUpdate)
+                                    if ((lvRes[0].StopLocation != null) && (lvRes.Count > 1))
                                     {
                                         lvListGeneStopLocation = mStopLocationOcupation[lvRes[1].StopLocation.Location];
                                         lvListGeneStopLocation.Remove(lvRes[1].TrainId);
 
+                                        lvGenesStopLocationSet = mStopLocationArrival[lvRes[1].StopLocation.Location];
+                                        if (lvGenesStopLocationSet.Contains(lvRes[1]))
+                                        {
+                                            lvGenesStopLocationSet.Remove(lvRes[1]);
+                                        }
+
                                         lvListGeneStopLocation = mStopLocationOcupation[lvRes[0].StopLocation.Location];
                                         lvListGeneStopLocation.Add(lvRes[0].TrainId);
+
+                                        if (lvGenesStopLocationSet.Contains(lvRes[0]))
+                                        {
+                                            lvGenesStopLocationSet.Remove(lvRes[0]);
+                                        }
+                                        lvGenesStopLocationSet = mStopLocationDeparture[lvNewGene.StopLocation.Location];
                                     }
 
                                     lvRes = null;
@@ -7498,8 +7305,13 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                     lvCurrentTrainMovement.Add(lvGene);
 
                                     mPlans.Insert(0, lvCurrentTrainMovement);
-
                                     mDicTrain.Remove(lvNewGene.TrainId);
+
+                                    lvNoStopMovement = (TrainMovement)MoveTrain(lvCurrentTrainMovement, out pUsedHeadway, pInitialTime, pUpdate, pNoStopBeforeSwitch: lvGotTrainMovPriority);
+                                    if (lvNoStopMovement != null)
+                                    {
+                                        lvRes.Add(lvNoStopMovement);
+                                    }
                                 }
                                 else
                                 {
@@ -7523,6 +7335,12 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
 
                                     lvRes.Last.EndStopLocation = lvGene.EndStopLocation;
                                     lvRes.Last.End = lvGene.End;
+
+                                    lvNoStopMovement = (TrainMovement)MoveTrain(lvRes, out pUsedHeadway, pInitialTime, pUpdate, pNoStopBeforeSwitch: lvGotTrainMovPriority);
+                                    if (lvNoStopMovement != null)
+                                    {
+                                        lvRes.Add(lvNoStopMovement);
+                                    }
                                 }
                             }
                             else
@@ -7564,26 +7382,25 @@ public class TrainIndividual : IIndividual<TrainMovement>, IComparable<IIndividu
                                 }
 #endif
                             }
-                        }
 
-                        /* Atualizando a lista de Stop Location Departure no Stop Location Final para contar o tempo de permanência nele */
-                        if ((lvNewGene.StopLocation != null) && (lvNewGene.StopLocation.DwellTimeOnEndStopLocation > 0))
-                        {
-                            lvNewGene = lvNewGene.Clone();
-                            lvNewGene.State = Gene.STATE.OUT;
-
-                            lvGenesStopLocationSet = mStopLocationDeparture[lvNewGene.StopLocation.Location];
-                            if (lvNewGene.Track <= lvNewGene.StopLocation.Capacity)
+                            /* Atualizando a lista de Stop Location Departure no Stop Location Final para contar o tempo de permanência nele */
+                            if ((lvNewGene.StopLocation != null) && (lvNewGene.StopLocation.DwellTimeOnEndStopLocation > 0))
                             {
-                                lvNewGene.Time = lvNewGene.Time.AddSeconds(lvNewGene.StopLocation.DwellTimeOnEndStopLocation);
-                                //lvGenesStopLocation[(lvNewGene.Track - 1) * 2 + Math.Max(0, (int)lvNewGene.Direction)] = lvNewGene;
+                                lvNewGene = lvNewGene.Clone();
+                                lvNewGene.State = Gene.STATE.OUT;
+                                lvNewGene.Visible = false;
 
-                                if (pUpdate)
+                                lvGenesStopLocationSet = mStopLocationDeparture[lvNewGene.StopLocation.Location];
+                                if (lvNewGene.Track <= lvNewGene.StopLocation.Capacity)
                                 {
-                                    lvGenesStopLocationSet.Add(lvNewGene);
-                                }
+                                    lvNewGene.Time = lvNewGene.Time.AddSeconds(lvNewGene.StopLocation.DwellTimeOnEndStopLocation);
+                                    //lvGenesStopLocation[(lvNewGene.Track - 1) * 2 + Math.Max(0, (int)lvNewGene.Direction)] = lvNewGene;
 
-                                //DumpStopDepLocation(lvStopLocation);
+                                    lvGenesStopLocationSet.Add(lvNewGene);
+                                    lvRes.Add(lvNewGene);
+
+                                    //DumpStopDepLocation(lvStopLocation);
+                                }
                             }
                         }
                     }
