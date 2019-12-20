@@ -2018,7 +2018,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 }
                 else if((lvGen.StopLocation.NoStopSet != null) && (lvGen.StopLocation.NoStopSet.Count > 0))
                 {
-                    if(lvGen.StopLocation.NoStopSet.Contains(lvGen.TrainName + lvGen.Direction))
+                    if(lvGen.StopLocation.HasNoStop(lvGen.TrainName + lvGen.Direction))
                     {
                         ProcessGene(lvGen, lvCurrentTime);
                     }
@@ -6732,7 +6732,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
 
                         if((lvNextStopLocation.NoStopSet != null) && (lvNextStopLocation.NoStopSet.Count > 0))
                         {
-                            if(lvNextStopLocation.NoStopSet.Contains(lvNewGene.TrainName + lvNewGene.Direction))
+                            if(lvNextStopLocation.HasNoStop(lvNewGene.TrainName + lvNewGene.Direction))
                             {
                                 ProcessGene(lvNewGene, pInitialTime);
                             }

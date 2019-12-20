@@ -1098,17 +1098,20 @@ public class Segment : IEquatable<Segment>, IComparable<Segment>
 
         if (lvEntrance != null)
         {
-            if (!lvEntrance.ContainsKey(pKey))
+            lock(lvEntrance)
             {
-                lvDependenceTracks = new HashSet<int>();
-                lvDependenceTracks.Add(pValue);
+                if (!lvEntrance.ContainsKey(pKey))
+                {
+                    lvDependenceTracks = new HashSet<int>();
+                    lvDependenceTracks.Add(pValue);
 
-                lvEntrance.Add(pKey, lvDependenceTracks);
-            }
-            else
-            {
-                lvDependenceTracks = lvEntrance[pKey];
-                lvDependenceTracks.Add(pValue);
+                    lvEntrance.Add(pKey, lvDependenceTracks);
+                }
+                else
+                {
+                    lvDependenceTracks = lvEntrance[pKey];
+                    lvDependenceTracks.Add(pValue);
+                }
             }
         }
     }

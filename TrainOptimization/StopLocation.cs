@@ -1199,17 +1199,20 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
             return;
         }
 
-        if (!lvDependency.ContainsKey(pKey))
+        lock(lvDependency)
         {
-            lvDependenceTracks = new HashSet<int>();
-            lvDependenceTracks.Add(pValue);
+            if (!lvDependency.ContainsKey(pKey))
+            {
+                lvDependenceTracks = new HashSet<int>();
+                lvDependenceTracks.Add(pValue);
 
-            lvDependency.Add(pKey, lvDependenceTracks);
-        }
-        else
-        {
-            lvDependenceTracks = lvDependency[pKey];
-            lvDependenceTracks.Add(pValue);
+                lvDependency.Add(pKey, lvDependenceTracks);
+            }
+            else
+            {
+                lvDependenceTracks = lvDependency[pKey];
+                lvDependenceTracks.Add(pValue);
+            }
         }
     }
 
@@ -1233,9 +1236,12 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
 
         if ((lvDependency != null) && (lvDependency.Count > 0))
         {
-            if (lvDependency.ContainsKey(pKey))
+            lock(lvDependency)
             {
-                lvRes = lvDependency[pKey];
+                if (lvDependency.ContainsKey(pKey))
+                {
+                    lvRes = lvDependency[pKey];
+                }
             }
         }
 
@@ -1430,6 +1436,21 @@ public class StopLocation : IEquatable<StopLocation>, IComparable<StopLocation>
         {
             return mNoStopSet;
         }
+    }
+
+    public bool HasNoStop(string pStrKey)
+    {
+        bool lvRes = false;
+
+        lock(mNoStopSet)
+        {
+            if (mNoStopSet.Contains(pStrKey))
+            {
+                lvRes = true;
+            }
+        }
+
+        return lvRes;
     }
 
     public override string ToString()
