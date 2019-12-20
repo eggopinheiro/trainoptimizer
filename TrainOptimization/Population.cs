@@ -1847,6 +1847,7 @@ public class Population
                         lvGene.Start = ((row["origem"] == DBNull.Value) ? Int32.MinValue : (int)row["origem"]);
                         lvGene.End = ((row["destino"] == DBNull.Value) ? Int32.MinValue : (int)row["destino"]);
                         lvGene.DepartureTime = ((row["departure_time"] == DBNull.Value) ? DateTime.MinValue : DateTime.Parse(row["departure_time"].ToString()));
+                        lvGene.Track = ((row["origin_track"] == DBNull.Value) ? (Int16)1 : (Int16)row["origin_track"]);
                         lvGene.Time = DateTime.MinValue;
                         lvGene.Coordinate = lvGene.Start;
                         lvGene.Direction = Int16.Parse(lvGene.TrainName.Substring(1));
@@ -1875,12 +1876,11 @@ public class Population
                         }
                         lvGene.EndStopLocation = lvEndStopLocation;
 
-                        lvSegment = Segment.GetSegmentAt(lvGene.Coordinate, 1);
+                        lvSegment = Segment.GetSegmentAt(lvGene.Coordinate, lvGene.Track);
 
                         if (lvSegment != null)
                         {
                             lvGene.SegmentInstance = lvSegment;
-                            lvGene.Track = 1;
 
                             lvCurrentStopSegment = lvSegment.OwnerStopLocation;
 
@@ -1903,7 +1903,6 @@ public class Population
                             if (lvGene.StopLocation != null)
                             {
                                 lvGene.SegmentInstance = lvGene.StopLocation.GetSegment(lvGene.Direction, 1);
-                                lvGene.Track = 1;
                             }
 
                             DebugLog.Logar("Não tem segment !", pIndet: TrainIndividual.IDLog);

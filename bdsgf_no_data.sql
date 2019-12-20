@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 5.6.26, for Win64 (x86_64)
 --
--- Host: 192.168.13.123    Database: bdsgf
+-- Host: 192.168.13.124    Database: bdsgf
 -- ------------------------------------------------------
 -- Server version	5.6.13-log
 
@@ -304,7 +304,7 @@ CREATE TABLE `tbcreateplanqueue` (
   PRIMARY KEY (`id`),
   KEY `idxcreateplantime` (`hist`),
   KEY `idxcreateplankey` (`pmt_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=144000 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=160430 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -530,7 +530,7 @@ CREATE TABLE `tbinterdqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=28144991 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=30184253 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -673,7 +673,7 @@ CREATE TABLE `tbmemprof` (
   `non_heap_memory_used` double DEFAULT NULL,
   `non_heap_memory_free` double DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=276626 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -892,6 +892,8 @@ CREATE TABLE `tbplan` (
   `hist` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   `pmt_id` varchar(25) CHARACTER SET latin1 DEFAULT NULL,
   `oid` varchar(20) DEFAULT NULL,
+  `branch_id` bigint(20) NOT NULL DEFAULT '-1',
+  `origin_track` tinyint(4) NOT NULL DEFAULT '1',
   PRIMARY KEY (`plan_id`),
   KEY `idxplanpmtid` (`pmt_id`),
   CONSTRAINT `tbplan_ibfk_1` FOREIGN KEY (`pmt_id`) REFERENCES `tbtrainpmt` (`pmt_id`)
@@ -971,7 +973,7 @@ CREATE TABLE `tbplanqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrainplanqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=2776529 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=2872322 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1104,7 +1106,7 @@ CREATE TABLE `tbrepeatersstatus` (
   PRIMARY KEY (`id`),
   KEY `repeater_id_hist` (`repeater_id`,`hist`),
   CONSTRAINT `fk_repeater_id` FOREIGN KEY (`repeater_id`) REFERENCES `tbrepeaters` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3216761 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3300281 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1162,10 +1164,31 @@ CREATE TABLE `tbsegment` (
   `track` smallint(6) NOT NULL DEFAULT '0',
   `allow_same_line_mov` tinyint(1) DEFAULT '0',
   `is_switch` tinyint(1) DEFAULT '0',
+  `crossover_side` varchar(10) DEFAULT NULL,
   `hist` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`location`,`segment`),
   KEY `fk_segment_branch` (`branch_id`),
   CONSTRAINT `fk_segment_branch` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tbsegmentbkb`
+--
+
+DROP TABLE IF EXISTS `tbsegmentbkb`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tbsegmentbkb` (
+  `location` int(11) NOT NULL,
+  `segment` varchar(20) CHARACTER SET latin1 NOT NULL,
+  `branch_id` bigint(20) DEFAULT NULL,
+  `start_coordinate` int(11) NOT NULL,
+  `end_coordinate` int(11) NOT NULL,
+  `track` smallint(6) NOT NULL DEFAULT '0',
+  `allow_same_line_mov` tinyint(1) DEFAULT '0',
+  `is_switch` tinyint(1) DEFAULT '0',
+  `hist` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1305,7 +1328,7 @@ CREATE TABLE `tbsrqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=6151301 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6259712 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1332,6 +1355,21 @@ CREATE TABLE `tbsrqueue_dev` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrqueuedev` (`hist`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tbstoplocations`
+--
+
+DROP TABLE IF EXISTS `tbstoplocations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tbstoplocations` (
+  `location` int(11) NOT NULL,
+  `start_coordinate` int(11) NOT NULL,
+  `end_coordinate` int(11) NOT NULL,
+  `capacity` tinyint(4) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1505,7 +1543,8 @@ CREATE TABLE `tbtraincompo` (
   `train_id` bigint(20) DEFAULT NULL,
   `date_hist` datetime NOT NULL,
   PRIMARY KEY (`pmt_id`,`tipo`,`compokey`),
-  KEY `idxcompodatehist` (`date_hist`)
+  KEY `idxcompodatehist` (`date_hist`),
+  KEY `idxcompoos` (`os`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1820,6 +1859,7 @@ CREATE TABLE `tbtrainmovsegment` (
   KEY `idxTrainMovSegLocation` (`train_id`,`data_ocup`,`location`),
   KEY `idxTrainMovSegLocationD` (`train_id`,`data_desocup`,`location`),
   KEY `fk_brain_trainmovsegment` (`branch_id`),
+  KEY `location` (`location`),
   CONSTRAINT `fk_brain_trainmovsegment` FOREIGN KEY (`branch_id`) REFERENCES `tbbranch` (`id`),
   CONSTRAINT `tbtrainmovsegment_ibfk_1` FOREIGN KEY (`train_id`) REFERENCES `tbtrain` (`train_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -1845,7 +1885,7 @@ CREATE TABLE `tbtrainmovsegqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtrainmovsegqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=43753115 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=46531391 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1940,7 +1980,7 @@ CREATE TABLE `tbtrainnotequeue` (
   `categ_id` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `idxtrainnotequeue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=16976796 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=17043318 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2001,7 +2041,7 @@ CREATE TABLE `tbtrainoptelapsed` (
   `comment` varchar(255) DEFAULT NULL,
   `initial_fitness` double NOT NULL DEFAULT '0',
   `ls_called_count` int(11) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`, `start_time`)
+  PRIMARY KEY (`id`,`start_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2014,13 +2054,13 @@ DROP TABLE IF EXISTS `tbtrainoptlog`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tbtrainoptlog` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `message` text NOT NULL,  
+  `message` text NOT NULL,
   `source` varchar(255) NOT NULL,
   `stacktrace` text NOT NULL,
   `targetsite` varchar(255) NOT NULL,
   `hist` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=41520686 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=41520728 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2061,7 +2101,7 @@ CREATE TABLE `tbtrainpatqueue` (
   `hist` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idxtbtrainpatqueue` (`hist`)
-) ENGINE=InnoDB AUTO_INCREMENT=3497660 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3636233 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2438,4 +2478,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-11-21 22:47:24
+-- Dump completed on 2018-01-10 22:56:09

@@ -5791,6 +5791,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 }
             }
 
+            /*
             if (lvCurrentTime > mDateRef.AddDays(mLimitDays))
             {
                 if (mDicTrain.ContainsKey(lvGene.TrainId))
@@ -5799,6 +5800,7 @@ public class TrainIndividual : IIndividual<Gene>, IComparable<IIndividual<Gene>>
                 }
                 return lvRes;
             }
+            */
 
             if (lvGene.DepartureTime == lvGene.Time)
             {

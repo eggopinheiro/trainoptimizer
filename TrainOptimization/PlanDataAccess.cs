@@ -485,7 +485,7 @@ public class PlanDataAccess
         string lvSql = "";
         DataSet ds = new DataSet();
 
-        lvSql = "select tbplan.plan_id, tbtrain.train_id, tbplan.train_name, tbplan.origem, tbplan.destino, tbplan.departure_time, tbplan.hist, tbplan.pmt_id From tbplan left join tbtrain on tbplan.plan_id=tbtrain.plan_id where tbtrain.status='Planejado' and (tbplan.departure_time between @begindate and @enddate) order by tbplan.departure_time asc";
+        lvSql = "select tbplan.plan_id, tbtrain.train_id, tbplan.train_name, tbplan.origem, tbplan.destino, tbplan.departure_time, tbplan.hist, tbplan.pmt_id, tbplan.origin_track From tbplan left join tbtrain on tbplan.plan_id=tbtrain.plan_id where tbtrain.status='Planejado' and (tbplan.departure_time between @begindate and @enddate) And tbplan.branch_id=@branch_id order by tbplan.departure_time asc";
 
         MySqlConnection conn = ConnectionManager.GetObjConnection();
         MySqlCommand cmd = new MySqlCommand(lvSql, conn);
@@ -507,6 +507,7 @@ public class PlanDataAccess
         {
             cmd.Parameters.Add("@enddate", MySqlDbType.DateTime).Value = pdeparture_timeFim.ToString("yyyy/MM/dd HH:mm:ss");
         }
+        cmd.Parameters.Add("@branch_id", MySqlDbType.String).Value = SegmentDataAccess.Branch;
 
         cmd.CommandType = CommandType.Text;
 

@@ -752,11 +752,11 @@ public class TrainmovsegmentDataAccess
 
         if (pInitialDate.Date < DateTime.Now.Date)
         {
-            lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' order by tbtrain.departure_time asc";
+            lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' order by tbtrain.departure_time asc";
         }
         else
         {
-            lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' and (tbtrain.status = 'Circulando' Or tbtrain.status = 'Planejado') order by tbtrain.departure_time asc";
+            lvSql = "select t1.train_id, t1.data_ocup, t1.location, t1.ud, t1.direction, t1.track, t1.coordinate, tbplan.plan_id plan_id, tbplan.origem, tbplan.destino, tbtrain.name, tbtrain.departure_time, tbtrain.creation_tm, tbplan.departure_time plan_departure_time from tbtrainmovsegment t1 join (select train_id, max(data_ocup) data_ocup from tbtrainmovsegment where (data_ocup BETWEEN @InitialDate AND @FinalDate) And branch_id=@branch_id group by train_id order by data_ocup desc) t2 on (t1.train_id=t2.train_id and t1.data_ocup=t2.data_ocup) Join tbtrain on (t1.train_id=tbtrain.train_id) left join tbplan on (tbtrain.plan_id=tbplan.plan_id) where tbtrain.name not like 'X%' and (tbtrain.status = 'Circulando' Or tbtrain.status = 'Planejado') order by tbtrain.departure_time asc";
         }
 
         MySqlConnection conn = ConnectionManager.GetObjConnection();
@@ -764,6 +764,7 @@ public class TrainmovsegmentDataAccess
 
         cmd.Parameters.Add("@InitialDate", MySqlDbType.DateTime).Value = pInitialDate;
         cmd.Parameters.Add("@FinalDate", MySqlDbType.DateTime).Value = pFinalDate;
+        cmd.Parameters.Add("@branch_id", MySqlDbType.String).Value = SegmentDataAccess.Branch;
 
         cmd.CommandType = CommandType.Text;
 
